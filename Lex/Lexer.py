@@ -5,7 +5,34 @@ class TYPE(Enum):
     # 在此填写所有的token类型的枚举
     # auto() 自动分配一个值
     IDENTIFIER = auto()
+    NUMBER = auto()
+    STRING = auto()
 
+    PLUS = auto()
+    MINUS = auto()
+    MULTI = auto()
+    DIVIDE = auto()
+    MOD = auto()
+    EXDIV = auto()
+
+    EQUAL = auto()
+    NE = auto()
+    LESS = auto()
+    GREATER = auto()
+    LE = auto()
+    GE = auto()
+
+    OR = auto()
+    AND = auto()
+
+    OPENPT = auto()
+    CLOSEPT = auto()
+    EOF = auto()
+
+class Token:
+    def __init__(self, type, value :str = None):
+        self.type = type
+        self.value = value
 
 class Lexer:
 
@@ -15,8 +42,6 @@ class Lexer:
         pass
 
     # TODO 实现词法分析
-    # return list 返回值样式需要为[{},{},...]  即字典的列表，
-    # 每个token是一个字典，{'type': TYPE, 'value': VALUE} , TYPE为枚举类型，VALUE为字符串值
-    # 形如：{'type': IDENTIFIER, 'value': 'a'}
+    # return list 返回值样式需要为即Token类的列表
     def tokenize(self) -> list:
         pass
