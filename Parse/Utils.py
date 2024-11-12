@@ -5,7 +5,6 @@ from pyecharts.charts import Tree
 def AST_Visual(ast: dict):
     # 根据AST 找出 节点 和 边
     tree = search(ast)
-    print(tree)
     # echarts 画图
     draw_graph(tree)
 
@@ -40,8 +39,6 @@ def get_node(node: dict , tree: list):
 
     tree.append(n)
 
-
-
 # 判断叶子节点
 def isEnd(node: dict):
     return node["type"] in ['NumericLiteral' , 'StringLiteral' , 'Identifier']
@@ -61,5 +58,22 @@ def draw_graph(tree: dict):
           )
         )
          .set_global_opts(title_opts=opt.TitleOpts(title="抽象语法树"))
-         .render("../AST.html")
+         .render("./AST.html")
     )
+
+
+# 判断是否为数字
+
+def is_number(s):
+    try:  # 如果能运行float(s)语句，返回True（字符串s是浮点数）
+        float(s)
+        return True
+    except ValueError:  # ValueError为Python的一种标准异常，表示"传入无效的参数"
+        pass  # 如果引发了ValueError这种异常，不做任何事情（pass：不做任何事情，一般用做占位语句）
+    try:
+        import unicodedata  # 处理ASCii码的包
+        unicodedata.numeric(s)  # 把一个表示数字的字符串转换为浮点数返回的函数
+        return True
+    except (TypeError, ValueError):
+        pass
+    return False

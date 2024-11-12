@@ -1,7 +1,7 @@
 from Lex.Lexer import Lexer , Token , TYPE
 import json
-from Utils import AST_Visual
 
+# token 转 AST
 class Parser:
     def __init__(self):
         self.lexer = Lexer()
@@ -184,33 +184,7 @@ class Parser:
                 raise SyntaxError("Unexpected token: " + token.value)
         return ret
 
-    def format_ast(self):
-        return json.dumps(self.parse() , indent=4)
 
 
-if __name__ == '__main__':
-    parser = Parser()
-    tokens = [
-              Token(TYPE.NUMBER, '1'),
-              Token(TYPE.PLUS , "+"),
-              Token(TYPE.NUMBER, '2'),
-              Token(TYPE.MULTI, "*"),
-              Token(TYPE.OPENPT, "("),
-              Token(TYPE.NUMBER, '3'),
-              Token(TYPE.MINUS, "-"),
-              Token(TYPE.NUMBER, '4'),
-              Token(TYPE.CLOSEPT, ")"),
-              Token(TYPE.LE, "<="),
-              Token(TYPE.NUMBER, '5'),
-              Token(TYPE.OR, "||"),
-              Token(TYPE.IDENTIFIER, 'a'),
-              Token(TYPE.AND, "&&"),
-              Token(TYPE.IDENTIFIER, 'b'),
-              Token(TYPE.AND, "&&"),
-              Token(TYPE.IDENTIFIER, 'c'),
-              Token(TYPE.EOF, None)
-              ]
-    parser.tokens = tokens
-    AST_Visual(parser.parse())
 
 

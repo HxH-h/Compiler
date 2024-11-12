@@ -1,4 +1,4 @@
-from Instruction import INSTRUCTION
+from VMachine.Instruction import INSTRUCTION
 from ctypes import *
 class Machine:
     def __init__(self , code):
@@ -48,29 +48,29 @@ class Machine:
     def operator(self, op):
         match op:
             case INSTRUCTION.ADD:
-                self._ax += self._stack[self._sp]
+                self._ax = self._stack[self._sp] + self._ax
             case INSTRUCTION.SUB:
-                self._ax -= self._stack[self._sp]
+                self._ax = self._stack[self._sp] - self._ax
             case INSTRUCTION.MUL:
-                self._ax *= self._stack[self._sp]
+                self._ax = self._stack[self._sp] * self._ax
             case INSTRUCTION.DIV:
-                self._ax /= self._stack[self._sp]
+                self._ax = self._stack[self._sp] / self._ax
             case INSTRUCTION.MOD:
-                self._ax %= self._stack[self._sp]
-            case INSTRUCTION.EDIV:
-                self._ax //= self._stack[self._sp]
+                self._ax = self._stack[self._sp] % self._ax
+            case INSTRUCTION.DIV:
+                self._ax = self._stack[self._sp] // self._ax
             case INSTRUCTION.EQ:
-                self._ax = self._ax == self._stack[self._sp]
+                self._ax = self._stack[self._sp] == self._ax
             case INSTRUCTION.NE:
-                self._ax = self._ax != self._stack[self._sp]
+                self._ax = self._stack[self._sp] != self._ax
             case INSTRUCTION.LE:
-                self._ax = self._ax <= self._stack[self._sp]
+                self._ax = self._stack[self._sp] <= self._ax
             case INSTRUCTION.GE:
-                self._ax = self._ax >= self._stack[self._sp]
-            case INSTRUCTION.GREATER:
-                self._ax = self._ax > self._stack[self._sp]
+                self._ax = self._stack[self._sp] >= self._ax
             case INSTRUCTION.LESS:
-                self._ax = self._ax < self._stack[self._sp]
+                self._ax = self._stack[self._sp] < self._ax
+            case INSTRUCTION.GREATER:
+                self._ax = self._stack[self._sp] > self._ax
         self._sp += 1
 
     def dispatch(self , op):
@@ -95,7 +95,7 @@ class Machine:
 
 
     # 运行程序
-    # 栈顶元素为返回值
+    # AX寄存器为返回值
     def run(self):
         end = len(self._code)
         while self._pc < end:
@@ -103,45 +103,18 @@ class Machine:
             # pc总是指向下一条指令
             self._pc += 1
             self.dispatch(op)
-        return self._stack[self._sp]
+        return self._ax
+
+    # 读取二进制文件
+    # TODO 读取二进制文件 写入code数组
+    def read_bin(self , path):
+        with open(path , 'rb') as f:
+            return f.read()
 
 
 
 
 if __name__ == '__main__':
-    code = [
-        INSTRUCTION.IMM, 15,
-        INSTRUCTION.PUSH,
-        INSTRUCTION.IMM, 1,
-        INSTRUCTION.PUSH,
-
-        INSTRUCTION.IMM, 98,
-        INSTRUCTION.RLV,
-        INSTRUCTION.PUSH,
-
-        INSTRUCTION.IMM, 99,
-        INSTRUCTION.RLV,
-
-        INSTRUCTION.EQ,
-        INSTRUCTION.JNZ, 29,
-
-        INSTRUCTION.IMM, 98,
-        INSTRUCTION.PUSH,
-        INSTRUCTION.IMM, 98,
-        INSTRUCTION.RLV,
-        INSTRUCTION.PUSH,
-        INSTRUCTION.IMM, 1,
-        INSTRUCTION.ADD,
-        INSTRUCTION.SLV,
-        INSTRUCTION.JMP, 6,
-
-        INSTRUCTION.IMM,98,
-        INSTRUCTION.RLV,
-        INSTRUCTION.PUSH,
-
-    ]
-
-    m = Machine(code)
-    print(m.run())
+    pass
 
 

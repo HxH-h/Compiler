@@ -24,6 +24,33 @@ class INSTRUCTION(IntEnum):
     JMP = 0x12,
     JZ = 0x13,
     JNZ = 0x14,
+    def getCode(operater: str) -> int:
+        match operater:
+            case '+':
+                return INSTRUCTION.ADD
+            case '-':
+                return INSTRUCTION.SUB
+            case '*':
+                return INSTRUCTION.MUL
+            case '/':
+                return INSTRUCTION.DIV
+            case '//':
+                return INSTRUCTION.EDIV
+            case '%':
+                return INSTRUCTION.MOD
+            case '==':
+                return INSTRUCTION.EQ
+            case '!=':
+                return INSTRUCTION.NE
+            case '<=':
+                return INSTRUCTION.LE
+            case '>=':
+                return INSTRUCTION.GE
+            case '<':
+                return INSTRUCTION.LESS
+            case '>':
+                return INSTRUCTION.GREATER
+
 
 
 
