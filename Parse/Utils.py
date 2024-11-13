@@ -19,8 +19,15 @@ def search(node: dict) -> dict:
 
     return tree
 
-# 前序遍历整棵树
+# 遍历整棵树 , 构建节点
 def get_node(node: dict , tree: list):
+    # 判断声明
+    if node['type'] == "VariableDeclaration":
+        n = {"name": node["type"], "children": []}
+        for child in node['child']:
+            get_varible_node(child , n['children'])
+        tree.append(n)
+        return
 
     # 递归出口
     if isEnd(node):
@@ -32,12 +39,23 @@ def get_node(node: dict , tree: list):
     get_node(node["left"] , n["children"])
 
     # 如果是表达式 还要输出符号
-    if node["type"] == "BinaryExpression":
+    if node["type"] == "BinaryExpression" or node["type"] == "AssignExpression":
         n["children"].append({"name": node["operator"]})
 
     get_node(node["right"] , n["children"])
 
     tree.append(n)
+
+# 构建变量声明的节点
+def get_varible_node(node: dict , tree: list):
+    key = 'const' if node["isConstant"] else 'let'
+    tree.append({"name": key})
+    tree.append({"name": node["name"]})
+    # TODO 处理声明同时赋值的语句
+    if 'operator' in node:
+        tree.append({"name": node["operator"]})
+        get_node(node['right'] , tree)
+
 
 # 判断叶子节点
 def isEnd(node: dict):

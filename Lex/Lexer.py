@@ -22,11 +22,17 @@ class TYPE(Enum):
     LE = auto()
     GE = auto()
 
+    ASSIGN = auto()
+
     OR = auto()
     AND = auto()
 
     OPENPT = auto()
     CLOSEPT = auto()
+
+    LET = auto()
+    CONST = auto()
+
     EOF = auto()
 
 class Token:

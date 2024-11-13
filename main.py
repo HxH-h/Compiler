@@ -7,27 +7,41 @@ from VMachine.Machine import Machine
 if __name__ == '__main__':
     parser = Parser()
     tokens = [
-        Token(TYPE.NUMBER, '1'),
+        Token(TYPE.LET , "let"),
+        Token(TYPE.IDENTIFIER, "a"),
+        Token(TYPE.IDENTIFIER, "a"),
+        Token(TYPE.ASSIGN, "="),
+        Token(TYPE.NUMBER, '5'),
         Token(TYPE.PLUS, "+"),
         Token(TYPE.NUMBER, '2'),
         Token(TYPE.MULTI, "*"),
         Token(TYPE.OPENPT, "("),
-        Token(TYPE.NUMBER, '3'),
+        Token(TYPE.NUMBER, '120'),
         Token(TYPE.MINUS, "-"),
         Token(TYPE.NUMBER, '4'),
         Token(TYPE.CLOSEPT, ")"),
+        Token(TYPE.EXDIV , "//"),
+        Token(TYPE.NUMBER, '5'),
+        Token(TYPE.LET, "let"),
+        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.ASSIGN, "="),
+        Token(TYPE.IDENTIFIER , "a"),
+        Token(TYPE.PLUS, "+"),
+        Token(TYPE.NUMBER, '2'),
         Token(TYPE.EOF, None)
     ]
+
     parser.tokens = tokens
     json = parser.parse()
 
+    print(json)
     AST_Visual(json)
 
     g = Generator()
     g.generate(json)
     print(g.code)
-    m = Machine(g.code)
-    print(m.read_bin("output.bin"))
+    m = Machine('output.bin')
+    print(m.run())
 
 
 

@@ -59,13 +59,53 @@ class Parser:
     # @return dict: 返回一条语句的AST
     def parse_statement(self) -> dict:
         # TODO 根据Token类型进行判断 决定处理 表达式 还是 语句
-        return self.parse_expression()
+        type = self.at().type
+        match type:
+            case TYPE.LET | TYPE.CONST:
+                return self.parse_defination()
+            case _:
+                return self.parse_expression()
+
+    # 处理定义变量语句
+    # @return dict: 返回一条定义语句的AST
+    def parse_defination(self) -> dict:
+        ret = {
+            "type": "VariableDeclaration",
+            "child":[]
+        }
+        token = self.next()
+        child = {}
+        child['isConstant'] = token.type == TYPE.CONST
+        child['name'] = self.expect(TYPE.IDENTIFIER,"Expect Identifier").value
+
+        # 判断是否有赋值操作
+        if self.at().type == TYPE.ASSIGN:
+            child['operator'] = self.expect(TYPE.ASSIGN,"Expect Assign").value
+            child['right'] = self.parse_expression()
+
+        ret["child"].append(child)
+        return ret
+
 
     # 优先级爬山 处理表达式
     # @return dict: 返回一条表达式的AST
     def parse_expression(self) -> dict:
-        # TODO 调用优先级最低的 解析 运算符 的函数
-        return self.parse_or()
+        # 调用优先级最低的 解析 运算符 的函数
+        return self.parse_assign()
+
+    # 处理赋值表达式
+    def parse_assign(self) -> dict:
+        left = self.parse_or()
+        if self.at().type == TYPE.ASSIGN:
+            op = self.next()
+            right = self.parse_or()
+            left = {
+                "type": "AssignExpression",
+                "left": left,
+                "right": right,
+                "operator": op.value
+            }
+        return left
 
     # 处理 或 运算符
     def parse_or(self) -> dict:

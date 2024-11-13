@@ -6,6 +6,7 @@ class INSTRUCTION(IntEnum):
     RLV = 0x02,
     SLV = 0x03,
     PUSH = 0x04,
+    PUSHIMM = 0x05,
     # 运算符
     ADD = 0x06,
     SUB = 0x07,
@@ -24,6 +25,8 @@ class INSTRUCTION(IntEnum):
     JMP = 0x12,
     JZ = 0x13,
     JNZ = 0x14,
+    # 内置函数
+    PRINT = 0x15,
     def getCode(operater: str) -> int:
         match operater:
             case '+':
@@ -50,6 +53,9 @@ class INSTRUCTION(IntEnum):
                 return INSTRUCTION.LESS
             case '>':
                 return INSTRUCTION.GREATER
+
+
+
 
 
 

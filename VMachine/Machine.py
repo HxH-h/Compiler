@@ -1,7 +1,7 @@
 from VMachine.Instruction import INSTRUCTION
-from ctypes import *
+import os
 class Machine:
-    def __init__(self , code):
+    def __init__(self , path):
         # 栈
         self._stack = [0] * 100
         # 栈指针
@@ -9,7 +9,9 @@ class Machine:
         # 栈基址
         self._bp = self._sp
         # 代码序列
-        self._code = code
+        self._code = []
+        # 读取二进制序列
+        self.read_bin(path)
         self._pc = 0
         # 通用寄存器
         self._ax = None
@@ -33,6 +35,15 @@ class Machine:
         self._sp -= 1
         self._stack[self._sp] = self._ax
 
+    # 弹出栈 赋给寄存器
+    def pop(self):
+        self._ax = self._stack[self._sp]
+        self._sp += 1
+    #  立即数 入栈
+    def pushimm(self, value):
+        self._sp -= 1
+        self._stack[self._sp] = value
+
     # 0则跳转
     def jz(self):
         self._pc = self._pc + 1 if self._ax else self._code[self._pc]
@@ -43,6 +54,10 @@ class Machine:
     # 无条件跳转
     def jmp(self):
         self._pc = self._code[self._pc]
+
+    # 打印寄存器的值
+    def print(self):
+        print(self._ax)
 
     # 运算符
     def operator(self, op):
@@ -57,7 +72,7 @@ class Machine:
                 self._ax = self._stack[self._sp] / self._ax
             case INSTRUCTION.MOD:
                 self._ax = self._stack[self._sp] % self._ax
-            case INSTRUCTION.DIV:
+            case INSTRUCTION.EDIV:
                 self._ax = self._stack[self._sp] // self._ax
             case INSTRUCTION.EQ:
                 self._ax = self._stack[self._sp] == self._ax
@@ -80,6 +95,9 @@ class Machine:
                 self._pc += 1
             case INSTRUCTION.PUSH:
                 self.push()
+            case INSTRUCTION.PUSHIMM:
+                self.pushimm(self._code[self._pc])
+                self._pc += 1
             case INSTRUCTION.SLV:
                 self.slv()
             case INSTRUCTION.RLV:
@@ -90,6 +108,8 @@ class Machine:
                 self.jz()
             case INSTRUCTION.JNZ:
                 self.jnz()
+            case INSTRUCTION.PRINT:
+                self.print()
             case o if INSTRUCTION.ADD <= o <= INSTRUCTION.GREATER:
                 self.operator(op)
 
@@ -109,12 +129,16 @@ class Machine:
     # TODO 读取二进制文件 写入code数组
     def read_bin(self , path):
         with open(path , 'rb') as f:
-            return f.read()
+            size = os.path.getsize(path)
+            for i in range(size):
+                self._code.append(int.from_bytes(f.read(1) , byteorder='little' , signed=True))
+
+    # TODO 测试完删除
+    def getCode(self):
+        return self._code
 
 
 
 
-if __name__ == '__main__':
-    pass
 
 
