@@ -21,12 +21,16 @@ def search(node: dict) -> dict:
 
 # 遍历整棵树 , 构建节点
 def get_node(node: dict , tree: list):
-    # 判断声明
+    # 判断声明语句
     if node['type'] == "VariableDeclaration":
         n = {"name": node["type"], "children": []}
         for child in node['child']:
             get_varible_node(child , n['children'])
         tree.append(n)
+        return
+    # 判断IF语句
+    if node['type'] == "IfStatement":
+        get_if_node(node , tree)
         return
 
     # 递归出口
@@ -51,10 +55,27 @@ def get_varible_node(node: dict , tree: list):
     key = 'const' if node["isConstant"] else 'let'
     tree.append({"name": key})
     tree.append({"name": node["name"]})
-    # TODO 处理声明同时赋值的语句
+    # 处理声明同时赋值的语句
     if 'operator' in node:
         tree.append({"name": node["operator"]})
         get_node(node['right'] , tree)
+
+def get_if_node(node: dict , tree: list):
+    n = {"name": node["type"] , "children": []}
+    # 获取 if体
+    get_block_node(node['ifbody'] , n['children'] , 'if_statement')
+    # 获取条件
+    get_node(node['condition'] , n['children'])
+    # 获取else体
+    if 'elsebody' in node:
+        get_block_node(node['elsebody'] , n['children'] , 'else_statement')
+    tree.append(n)
+
+def get_block_node(node: dict , tree: list , name: str):
+    n = {"name": name , "children": []}
+    for child in node['body']:
+        get_node(child , n['children'])
+    tree.append(n)
 
 
 # 判断叶子节点

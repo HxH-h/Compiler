@@ -126,7 +126,6 @@ class Machine:
         return self._ax
 
     # 读取二进制文件
-    # TODO 读取二进制文件 写入code数组
     def read_bin(self , path):
         with open(path , 'rb') as f:
             size = os.path.getsize(path)

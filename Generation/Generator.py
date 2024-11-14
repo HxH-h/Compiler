@@ -10,6 +10,9 @@ class Generator:
     def generate_program(self , node: dict):
         for stmt in node['body']:
             self.generate(stmt)
+
+        # 生成指令文件
+        self.generate_code()
         # 生成二进制文件
         self.generate_bin()
     def generate_BinaryExpression(self , node: dict):
@@ -55,7 +58,7 @@ class Generator:
             raise Exception('Invalid left value cannot assign value')
         # 判断该变量是否被声明过
         if not self.env.has(node['left']['value']):
-            raise Exception('Variable not known')
+            raise Exception('Variable ' + node['left']['value'] +' not known')
         # 执行右部表达式
         self.generate(node['right'])
         # 获取变量地址
@@ -63,6 +66,34 @@ class Generator:
         self.code.append(INSTRUCTION.PUSHIMM)
         self.code.append(add)
         self.code.append(INSTRUCTION.SLV)
+
+    def generate_IFStatement(self , node: dict):
+        # 执行条件表达式
+        self.generate(node['condition'])
+        # 判断条件 0则跳转
+        self.code.append(INSTRUCTION.JZ)
+        # 需要空出来一个位置用于确定跳转位置
+        self.code.append(None)
+        else_index = len(self.code) - 1
+        # 执行if体
+        self.generate(node['ifbody'])
+        # 执行完if体需要跳过else部分
+        self.code.append(INSTRUCTION.JMP)
+        skip_else = len(self.code)
+        self.code.append(skip_else + 1)
+        # 跳过if体的位置
+        self.code[else_index] = skip_else + 1
+        # 查看有无else
+        if 'elsebody' in node:
+            self.generate(node['elsebody'])
+            # 有else则需要更新 if中的跳转
+            self.code[skip_else] = len(self.code)
+
+    # 和处理program相同
+    # TODO 块内的环境和块外的环境不同，区分局部变量
+    def generate_BlockStatement(self , node: dict):
+        for stmt in node['body']:
+            self.generate(stmt)
 
 
     # 处理变量引用
@@ -89,6 +120,10 @@ class Generator:
                 self.generate_Declaration(node)
             case 'AssignExpression':
                 self.generate_AssignExpression(node)
+            case 'IfStatement':
+                self.generate_IFStatement(node)
+            case 'BlockStatement':
+                self.generate_BlockStatement(node)
             case 'NumericLiteral':
                 self.generate_NumericLiteral(node)
             case 'Identifier':
@@ -100,5 +135,27 @@ class Generator:
             for i in self.code:
                 # TODO 不能只存一个字节
                 f.write(i.to_bytes(1 , 'little' , signed=True))
+
+    def generate_code(self):
+        # 把一些丑陋的语句封装到函数里
+        def has_paramter(code):
+            return code in ['IMM' , 'PUSHIMM' , 'JMP' , 'JZ' , 'JNZ']
+        def get_code_name(index):
+            return INSTRUCTION(self.code[index]).name
+        def get_parameter(index):
+            return str(self.code[index])
+
+        with open('output.txt' , 'w') as f:
+            lengh = len(self.code)
+            i = 0
+            while i < lengh:
+                code = get_code_name(i)
+                f.write(code + '\n')
+                if has_paramter(code):
+                    f.write(get_parameter(i + 1) + '\n')
+                    i += 1
+                i += 1
+
+
 
 

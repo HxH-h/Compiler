@@ -58,11 +58,13 @@ class Parser:
     # 一个语句 可以是表达式 也可以是语句
     # @return dict: 返回一条语句的AST
     def parse_statement(self) -> dict:
-        # TODO 根据Token类型进行判断 决定处理 表达式 还是 语句
+        # 根据Token类型进行判断 决定处理 表达式 还是 语句
         type = self.at().type
         match type:
             case TYPE.LET | TYPE.CONST:
                 return self.parse_defination()
+            case TYPE.IF:
+                return self.parse_condition()
             case _:
                 return self.parse_expression()
 
@@ -85,6 +87,50 @@ class Parser:
 
         ret["child"].append(child)
         return ret
+
+    # 处理条件语句
+    # @return dict: 返回一条条件语句的AST
+    def parse_condition(self) -> dict:
+        # 指针当前为 IF ， 后移
+        self.next()
+        ret = {
+            "type": "IfStatement",
+        }
+        # 判断是否为 (
+        self.expect(TYPE.OPENPT,"Expect Open Parenthesis")
+        # 解析判断表达式
+        ret['condition'] = self.parse_expression()
+        self.expect(TYPE.CLOSEPT,"Expect Close Parenthesis")
+
+        # 解析 if 语句块
+        ret['ifbody'] = self.parse_block()
+
+        # 查看是否有else
+        if self.at().type == TYPE.ELSE:
+            self.next()
+            # 解析else 语句块
+            ret['elsebody'] = self.parse_block()
+
+        return ret
+
+    # 处理块语句
+    # @return dict: 返回一条块语句的AST
+    def parse_block(self) -> dict:
+        ret = {
+            "type": "BlockStatement",
+            "body": []
+        }
+        # 检测是否由 { 开始
+        self.expect(TYPE.OPENBRACE,"Expect Open Brace")
+
+        # 循环解析语句块内的语句
+        while not self.at().type == TYPE.CLOSEBRACE:
+            ret["body"].append(self.parse_statement())
+
+        # 检测是否由 } 结束
+        self.expect(TYPE.CLOSEBRACE , "Expect Close Brace")
+        return ret
+
 
 
     # 优先级爬山 处理表达式

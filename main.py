@@ -7,6 +7,13 @@ from VMachine.Machine import Machine
 if __name__ == '__main__':
     parser = Parser()
     tokens = [
+        Token(TYPE.IF , "if"),
+        Token(TYPE.OPENPT , "("),
+        Token(TYPE.NUMBER, "3"),
+        Token(TYPE.LESS, "<"),
+        Token(TYPE.NUMBER, "3"),
+        Token(TYPE.CLOSEPT , ")"),
+        Token(TYPE.OPENBRACE , "{"),
         Token(TYPE.LET , "let"),
         Token(TYPE.IDENTIFIER, "a"),
         Token(TYPE.IDENTIFIER, "a"),
@@ -22,12 +29,12 @@ if __name__ == '__main__':
         Token(TYPE.CLOSEPT, ")"),
         Token(TYPE.EXDIV , "//"),
         Token(TYPE.NUMBER, '5'),
-        Token(TYPE.LET, "let"),
-        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.IDENTIFIER, "a"),
         Token(TYPE.ASSIGN, "="),
         Token(TYPE.IDENTIFIER , "a"),
         Token(TYPE.PLUS, "+"),
         Token(TYPE.NUMBER, '2'),
+        Token(TYPE.CLOSEBRACE , "}"),
         Token(TYPE.EOF, None)
     ]
 

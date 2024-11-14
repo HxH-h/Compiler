@@ -29,9 +29,13 @@ class TYPE(Enum):
 
     OPENPT = auto()
     CLOSEPT = auto()
+    OPENBRACE = auto()
+    CLOSEBRACE = auto()
 
     LET = auto()
     CONST = auto()
+    IF = auto()
+    ELSE = auto()
 
     EOF = auto()
 
