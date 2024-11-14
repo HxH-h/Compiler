@@ -65,6 +65,8 @@ class Parser:
                 return self.parse_defination()
             case TYPE.IF:
                 return self.parse_condition()
+            case TYPE.WHILE:
+                return self.parse_loop()
             case _:
                 return self.parse_expression()
 
@@ -110,6 +112,23 @@ class Parser:
             self.next()
             # 解析else 语句块
             ret['elsebody'] = self.parse_block()
+
+        return ret
+
+    # 处理循环语句
+    # @return dict: 返回一条循环语句的AST
+    def parse_loop(self) -> dict:
+        # 指针当前为 WHILE ， 后移
+        self.next()
+        ret = {
+            "type": "LoopStatement",
+        }
+        # 解析条件
+        self.expect(TYPE.OPENPT,"Expect Open Parenthesis")
+        ret['condition'] = self.parse_expression()
+        self.expect(TYPE.CLOSEPT,"Expect Close Parenthesis")
+        # 解析循环体
+        ret['body'] = self.parse_block()
 
         return ret
 

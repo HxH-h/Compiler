@@ -36,6 +36,7 @@ class TYPE(Enum):
     CONST = auto()
     IF = auto()
     ELSE = auto()
+    WHILE = auto()
 
     EOF = auto()
 

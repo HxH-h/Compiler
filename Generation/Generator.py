@@ -89,6 +89,25 @@ class Generator:
             # 有else则需要更新 if中的跳转
             self.code[skip_else] = len(self.code)
 
+    def generate_LoopStatement(self , node: dict):
+        # 存储 执行 条件判断语句的 起始位置
+        loop_index = len(self.code)
+        # 执行条件表达式
+        self.generate(node['condition'])
+        # 0则跳转
+        self.code.append(INSTRUCTION.JZ)
+        # 需要空出来一个位置用于确定跳转位置
+        self.code.append(None)
+        skip_index = len(self.code) - 1
+        # 执行循环体
+        self.generate(node['body'])
+        # 执行完再跳回判断处
+        self.code.append(INSTRUCTION.JMP)
+        self.code.append(loop_index)
+
+        # 确定跳出循环的位置
+        self.code[skip_index] = len(self.code)
+
     # 和处理program相同
     # TODO 块内的环境和块外的环境不同，区分局部变量
     def generate_BlockStatement(self , node: dict):
@@ -122,6 +141,8 @@ class Generator:
                 self.generate_AssignExpression(node)
             case 'IfStatement':
                 self.generate_IFStatement(node)
+            case 'LoopStatement':
+                self.generate_LoopStatement(node)
             case 'BlockStatement':
                 self.generate_BlockStatement(node)
             case 'NumericLiteral':

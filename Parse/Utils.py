@@ -32,6 +32,10 @@ def get_node(node: dict , tree: list):
     if node['type'] == "IfStatement":
         get_if_node(node , tree)
         return
+    # 判断循环语句
+    if node['type'] == "LoopStatement":
+        get_while_node(node , tree)
+        return
 
     # 递归出口
     if isEnd(node):
@@ -69,6 +73,15 @@ def get_if_node(node: dict , tree: list):
     # 获取else体
     if 'elsebody' in node:
         get_block_node(node['elsebody'] , n['children'] , 'else_statement')
+    tree.append(n)
+
+def get_while_node(node: dict , tree: list):
+    n = {"name": node["type"] , "children": []}
+    # 获取条件
+    get_node(node['condition'] , n['children'])
+    # 获取循环体
+    get_block_node(node['body'] , n['children'] , 'while_statement')
+
     tree.append(n)
 
 def get_block_node(node: dict , tree: list , name: str):

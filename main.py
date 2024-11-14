@@ -35,6 +35,13 @@ if __name__ == '__main__':
         Token(TYPE.PLUS, "+"),
         Token(TYPE.NUMBER, '2'),
         Token(TYPE.CLOSEBRACE , "}"),
+        Token(TYPE.ELSE , "else"),
+        Token(TYPE.OPENBRACE , "{"),
+        Token(TYPE.LET , "let"),
+        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.ASSIGN, "="),
+        Token(TYPE.NUMBER, '5'),
+        Token(TYPE.CLOSEBRACE , "}"),
         Token(TYPE.EOF, None)
     ]
 
