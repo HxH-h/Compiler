@@ -5,22 +5,25 @@ from Generation.Environment import Environment
 class Generator:
     def __init__(self):
         self.code = []
-        self.env = Environment()
+
 
     def generate_program(self , node: dict):
+        # program 为 最外层 作为根环境
+        env = Environment()
+
         for stmt in node['body']:
-            self.generate(stmt)
+            self.generate(stmt , env)
 
         # 生成指令文件
         self.generate_code()
         # 生成二进制文件
         self.generate_bin()
-    def generate_BinaryExpression(self , node: dict):
-        self.generate(node['left'])
+    def generate_BinaryExpression(self , node: dict , env: Environment):
+        self.generate(node['left'] , env)
         # 左部结果入栈
         self.code.append(INSTRUCTION.PUSH)
         # 右部结果在寄存器
-        self.generate(node['right'])
+        self.generate(node['right'] , env)
         # 计算
         opCode = INSTRUCTION.getCode(node['operator'])
         self.code.append(opCode)
@@ -34,49 +37,49 @@ class Generator:
             raise Exception('Invalid number cannot convert to Number')
 
     # 处理变量声明
-    def generate_Declaration(self , node: dict):
+    def generate_Declaration(self , node: dict , env: Environment):
         # TODO 暂时只处理一个变量
         varible = node['child'][0]
-        # 查找该变量是否存在
-        if self.env.has(varible['name']):
+        # 声明前 查找该变量是否存在 , 只在当前环境下查看 , 实现遮蔽的效果
+        if env.has(varible['name']):
             raise Exception('Variable already declared')
-        add = self.env.addSymbol(varible['name'])
+        add = env.addSymbol(varible['name'])
         # 生成虚拟机指令
         # 分配栈空间 ， 否则栈指针会回退
         self.code.append(INSTRUCTION.PUSH)
         # 查看是否分配初值
         if 'operator' in varible:
-            self.generate(varible['right'])
+            self.generate(varible['right'] , env)
         # 赋初值
         self.code.append(INSTRUCTION.PUSHIMM)
         self.code.append(add)
         self.code.append(INSTRUCTION.SLV)
 
-    def generate_AssignExpression(self , node: dict):
+    def generate_AssignExpression(self , node: dict , env: Environment):
         # 判断左值是否为变量
         if node['left']['type'] != 'Identifier':
             raise Exception('Invalid left value cannot assign value')
-        # 判断该变量是否被声明过
-        if not self.env.has(node['left']['value']):
+        # 赋值的变量可能来自外部环境 ， 递归查找
+        if not env.find(node['left']['value']):
             raise Exception('Variable ' + node['left']['value'] +' not known')
         # 执行右部表达式
-        self.generate(node['right'])
+        self.generate(node['right'] , env)
         # 获取变量地址
-        add = self.env.getSymbol(node['left']['value'])
+        add = env.findSymbol(node['left']['value'])
         self.code.append(INSTRUCTION.PUSHIMM)
         self.code.append(add)
         self.code.append(INSTRUCTION.SLV)
 
-    def generate_IFStatement(self , node: dict):
+    def generate_IFStatement(self , node: dict , env: Environment):
         # 执行条件表达式
-        self.generate(node['condition'])
+        self.generate(node['condition'] , env)
         # 判断条件 0则跳转
         self.code.append(INSTRUCTION.JZ)
         # 需要空出来一个位置用于确定跳转位置
         self.code.append(None)
         else_index = len(self.code) - 1
         # 执行if体
-        self.generate(node['ifbody'])
+        self.generate(node['ifbody'] , env)
         # 执行完if体需要跳过else部分
         self.code.append(INSTRUCTION.JMP)
         skip_else = len(self.code)
@@ -85,22 +88,22 @@ class Generator:
         self.code[else_index] = skip_else + 1
         # 查看有无else
         if 'elsebody' in node:
-            self.generate(node['elsebody'])
+            self.generate(node['elsebody'] , env)
             # 有else则需要更新 if中的跳转
             self.code[skip_else] = len(self.code)
 
-    def generate_LoopStatement(self , node: dict):
+    def generate_LoopStatement(self , node: dict , env: Environment):
         # 存储 执行 条件判断语句的 起始位置
         loop_index = len(self.code)
         # 执行条件表达式
-        self.generate(node['condition'])
+        self.generate(node['condition'] , env)
         # 0则跳转
         self.code.append(INSTRUCTION.JZ)
         # 需要空出来一个位置用于确定跳转位置
         self.code.append(None)
         skip_index = len(self.code) - 1
         # 执行循环体
-        self.generate(node['body'])
+        self.generate(node['body'] , env)
         # 执行完再跳回判断处
         self.code.append(INSTRUCTION.JMP)
         self.code.append(loop_index)
@@ -109,46 +112,47 @@ class Generator:
         self.code[skip_index] = len(self.code)
 
     # 和处理program相同
-    # TODO 块内的环境和块外的环境不同，区分局部变量
-    def generate_BlockStatement(self , node: dict):
+    def generate_BlockStatement(self , node: dict , parent_env: Environment):
+        # 块内块外 环境 不同 父子关系
+        env = Environment(parent_env)
         for stmt in node['body']:
-            self.generate(stmt)
+            self.generate(stmt , env)
 
 
     # 处理变量引用
-    def generate_Identifier(self , node: dict):
+    def generate_Identifier(self , node: dict , env: Environment):
         # 获取变量名
         varible = node['value']
-        # 查找变量是否存在
-        if self.env.has(varible):
+        # 表达式右值变量 递归查找
+        if env.find(varible):
             # 获取变量地址
-            add = self.env.getSymbol(varible)
+            add = env.findSymbol(varible)
             # 生成虚拟机指令 , 将值载入寄存器
             self.code.append(INSTRUCTION.IMM)
             self.code.append(add)
             self.code.append(INSTRUCTION.RLV)
 
 
-    def generate(self , node: dict):
+    def generate(self , node: dict , env: Environment = None):
         match node['type']:
             case 'Program':
                 self.generate_program(node)
             case 'BinaryExpression':
-                self.generate_BinaryExpression(node)
+                self.generate_BinaryExpression(node , env)
             case 'VariableDeclaration':
-                self.generate_Declaration(node)
+                self.generate_Declaration(node , env)
             case 'AssignExpression':
-                self.generate_AssignExpression(node)
+                self.generate_AssignExpression(node , env)
             case 'IfStatement':
-                self.generate_IFStatement(node)
+                self.generate_IFStatement(node , env)
             case 'LoopStatement':
-                self.generate_LoopStatement(node)
+                self.generate_LoopStatement(node , env)
             case 'BlockStatement':
-                self.generate_BlockStatement(node)
+                self.generate_BlockStatement(node , env)
             case 'NumericLiteral':
                 self.generate_NumericLiteral(node)
             case 'Identifier':
-                self.generate_Identifier(node)
+                self.generate_Identifier(node , env)
 
 
     def generate_bin(self):
