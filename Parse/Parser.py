@@ -67,6 +67,8 @@ class Parser:
                 return self.parse_condition()
             case TYPE.WHILE:
                 return self.parse_loop()
+            case TYPE.FUNC:
+                return self.parse_function()
             case _:
                 return self.parse_expression()
 
@@ -89,6 +91,64 @@ class Parser:
 
         ret["child"].append(child)
         return ret
+
+    # 处理函数声明
+    # @return dict: 返回一条函数声明语句的AST
+    def parse_function(self) -> dict:
+        self.next()
+        ret = {
+            "type": "FunctionDeclaration",
+        }
+        # 函数名
+        ret['name'] = self.expect(TYPE.IDENTIFIER,"Expect Identifier").value
+        # 解析参数
+        ret['args'] = self.parse_parameter()
+        # 解析函数体
+        ret['body'] = self.parse_block()
+        # TODO 解析return
+
+        return ret
+
+    # 处理函数调用
+    # @return dict: 返回一条函数调用语句的AST
+    def parse_call(self) -> list:
+        # 处理 (
+        self.expect(TYPE.OPENPT,"Expect Open Parenthesis")
+        args = []
+        if self.at().type == TYPE.CLOSEPT:
+            self.next()
+            return args
+        # 获取第一个实参
+        first = self.parse_expression()
+        args.append(first)
+        # 循环判断是否有后续参数
+        while self.at().type == TYPE.COMMA:
+            self.next()
+            args.append(self.parse_expression())
+
+        self.expect(TYPE.CLOSEPT,"Expect Close Parenthesis")
+        return args
+
+
+    # 获取函数声明形参
+    def parse_parameter(self):
+        self.expect(TYPE.OPENPT,"Expect Open Parenthesis")
+        args = []
+        # 空参直接返回
+        if self.at().type == TYPE.CLOSEPT:
+            self.next()
+            return args
+        # 获取第一个形参
+        name = self.expect(TYPE.IDENTIFIER,"Expect Identifier").value
+        args.append(name)
+        # 循环判断是否有后续参数
+        while self.at().type == TYPE.COMMA:
+            self.next()
+            name = self.expect(TYPE.IDENTIFIER,"Expect Identifier").value
+            args.append(name)
+        # 检测是否由 ) 结束
+        self.expect(TYPE.CLOSEPT,"Expect Close Parenthesis")
+        return args
 
     # 处理条件语句
     # @return dict: 返回一条条件语句的AST
@@ -280,6 +340,9 @@ class Parser:
                 ret["type"] = "StringLiteral"
             case TYPE.IDENTIFIER:
                 ret["type"] = "Identifier"
+                if self.at().type == TYPE.OPENPT:
+                    ret['type'] = "CallExpression"
+                    ret['args'] = self.parse_call()
             case TYPE.OPENPT:
                 # 括号内 仍然是 表达式
                 ret = self.parse_expression()

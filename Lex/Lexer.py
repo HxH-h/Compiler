@@ -31,12 +31,15 @@ class TYPE(Enum):
     CLOSEPT = auto()
     OPENBRACE = auto()
     CLOSEBRACE = auto()
+    COMMA = auto()
 
     LET = auto()
     CONST = auto()
     IF = auto()
     ELSE = auto()
     WHILE = auto()
+    FUNC = auto()
+
 
     EOF = auto()
 

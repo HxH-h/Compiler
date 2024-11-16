@@ -37,6 +37,16 @@ def get_node(node: dict , tree: list):
         get_while_node(node , tree)
         return
 
+    # 判断函数声明
+    if node['type'] == "FunctionDeclaration":
+        get_function_node(node , tree)
+        return
+
+    # 判断函数调用
+    if node['type'] == "CallExpression":
+        get_call_node(node , tree)
+        return
+
     # 递归出口
     if isEnd(node):
         tree.append({"name": node["value"]})
@@ -83,6 +93,31 @@ def get_while_node(node: dict , tree: list):
     get_block_node(node['body'] , n['children'] , 'while_statement')
 
     tree.append(n)
+
+def get_function_node(node: dict , tree: list):
+    n = {"name": node["type"] , "children": []}
+    # 获取函数名
+    n['children'].append({"name": node['name']})
+    # 获取参数
+    if 'args' in node:
+        get_parameter_node(node['args'] , n['children'])
+    # 获取函数体
+    get_block_node(node['body'] , n['children'] , 'function_body')
+    tree.append(n)
+
+def get_parameter_node(args: list , tree: list):
+    n = {"name": "parameter" , "children": []}
+    for arg in args:
+        n['children'].append({"name": arg})
+    tree.append(n)
+
+def get_call_node(node: dict , tree: list):
+    n = {"name": node["value"] , "children": []}
+    if 'args' in node:
+        for arg in node['args']:
+            get_node(arg , n['children'])
+    tree.append(n)
+
 
 def get_block_node(node: dict , tree: list , name: str):
     n = {"name": name , "children": []}

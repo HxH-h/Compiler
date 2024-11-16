@@ -7,9 +7,36 @@ from VMachine.Machine import Machine
 if __name__ == '__main__':
     parser = Parser()
     tokens = [
+        Token(TYPE.FUNC, "func"),
+        Token(TYPE.IDENTIFIER, "main"),
+        Token(TYPE.OPENPT , "("),
+        Token(TYPE.IDENTIFIER , "a"),
+        Token(TYPE.COMMA , ","),
+        Token(TYPE.IDENTIFIER , "b"),
+        Token(TYPE.CLOSEPT , ")"),
+        Token(TYPE.OPENBRACE , "{"),
+
+        Token(TYPE.LET , "let"),
+        Token(TYPE.IDENTIFIER, "a"),
+        Token(TYPE.ASSIGN, "="),
+        Token(TYPE.NUMBER, '5'),
+
+        Token(TYPE.LET , "let"),
+        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.ASSIGN, "="),
+        Token(TYPE.IDENTIFIER, "sum"),
+        Token(TYPE.OPENPT, "("),
+        Token(TYPE.IDENTIFIER, "a"),
+        Token(TYPE.PLUS, "+"),
+        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.COMMA , ","),
+        Token(TYPE.IDENTIFIER , 'c'),
+        Token(TYPE.CLOSEPT, ")"),
+
+
         Token(TYPE.IF , "if"),
         Token(TYPE.OPENPT , "("),
-        Token(TYPE.NUMBER, "3"),
+        Token(TYPE.NUMBER, "2"),
         Token(TYPE.LESS, "<"),
         Token(TYPE.NUMBER, "3"),
         Token(TYPE.CLOSEPT , ")"),
@@ -35,12 +62,14 @@ if __name__ == '__main__':
         Token(TYPE.PLUS, "+"),
         Token(TYPE.NUMBER, '2'),
         Token(TYPE.CLOSEBRACE , "}"),
+
         Token(TYPE.ELSE , "else"),
         Token(TYPE.OPENBRACE , "{"),
         Token(TYPE.LET , "let"),
-        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.IDENTIFIER, "a"),
         Token(TYPE.ASSIGN, "="),
         Token(TYPE.NUMBER, '5'),
+        Token(TYPE.CLOSEBRACE , "}"),
         Token(TYPE.CLOSEBRACE , "}"),
         Token(TYPE.EOF, None)
     ]
@@ -52,10 +81,10 @@ if __name__ == '__main__':
     AST_Visual(json)
 
     g = Generator()
-    g.generate(json)
-    print(g.code)
-    m = Machine('output.bin')
-    print(m.run())
+    #g.generate(json)
+    #print(g.code)
+    #m = Machine('output.bin')
+    #print(m.run())
 
 
 
