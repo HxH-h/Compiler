@@ -1,3 +1,5 @@
+import struct
+from Parse.Utils import has_parameter
 from VMachine.Instruction import INSTRUCTION
 import os
 class Machine:
@@ -128,7 +130,7 @@ class Machine:
 
     def dispatch(self , op):
         match op:
-            case INSTRUCTION.IMM:
+            case INSTRUCTION.IMM | INSTRUCTION.IMMF:
                 self.imm(self._code[self._pc])
                 self._pc += 1
             case INSTRUCTION.PUSH:
@@ -177,10 +179,23 @@ class Machine:
 
     # 读取二进制文件
     def read_bin(self , path):
+
         with open(path , 'rb') as f:
             size = os.path.getsize(path)
-            for i in range(size):
-                self._code.append(int.from_bytes(f.read(1) , byteorder='little' , signed=True))
+            i = 0
+            while i < size:
+                code = int.from_bytes(f.read(1) , byteorder='little' , signed=True)
+                self._code.append(code)
+                if has_parameter(code):
+                    if code == INSTRUCTION.IMMF:
+                        num = struct.unpack('<f' , f.read(4))[0]
+                        self._code.append(num)
+                    else:
+                        num = int.from_bytes(f.read(4) , byteorder='little' , signed=True)
+                        self._code.append(num)
+                    i += 4
+                i += 1
+
 
 
 

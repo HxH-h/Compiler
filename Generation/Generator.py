@@ -1,5 +1,5 @@
 from VMachine.Instruction import INSTRUCTION
-from Parse.Utils import is_number
+from Parse.Utils import is_number , is_integer , has_parameter , get_parameter
 from Generation.Environment import Environment
 # AST转机器码
 class Generator:
@@ -29,10 +29,14 @@ class Generator:
         self.code.append(opCode)
 
     def generate_NumericLiteral(self , node: dict):
-        self.code.append(INSTRUCTION.IMM)
         # 将文本转为数字
         if is_number(node['value']):
-            self.code.append(eval(node['value']))
+            num = eval(node['value'])
+            if is_integer(num):
+                self.code.append(INSTRUCTION.IMM)
+            else:
+                self.code.append(INSTRUCTION.IMMF)
+            self.code.append(num)
         else:
             raise Exception('Invalid number cannot convert to Number')
 
@@ -235,15 +239,19 @@ class Generator:
 
 
     def generate_bin(self):
+
         with open('output.bin' , 'wb') as f:
-            for i in self.code:
-                # TODO 不能只存一个字节
-                f.write(i.to_bytes(1 , 'little' , signed=True))
+            length = len(self.code)
+            i = 0
+            while i < length:
+                f.write(self.code[i].to_bytes(1, 'little' , signed=True))
+                if has_parameter(self.code[i]):
+                    f.write(get_parameter(self.code[i + 1]))
+                    i += 1
+                i += 1
 
     def generate_code(self):
         # 把一些丑陋的语句封装到函数里
-        def has_paramter(code):
-            return code in ['IMM' , 'PUSHIMM' , 'JMP' , 'JZ' , 'JNZ' , 'LEA' , 'CALL' , 'RET' , 'ENT']
         def get_code_name(index):
             return INSTRUCTION(self.code[index]).name
         def get_parameter(index):
@@ -255,7 +263,7 @@ class Generator:
             while i < lengh:
                 code = get_code_name(i)
                 f.write(code + '\n')
-                if has_paramter(code):
+                if has_parameter(self.code[i]):
                     f.write(get_parameter(i + 1) + '\n')
                     i += 1
                 i += 1

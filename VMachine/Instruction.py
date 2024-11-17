@@ -3,6 +3,7 @@ from enum import IntEnum
 class INSTRUCTION(IntEnum):
     # 操作栈和寄存器
     IMM = 0x01,
+    IMMF = 0x22,
     RLV = 0x02,
     SLV = 0x03,
     PUSH = 0x04,

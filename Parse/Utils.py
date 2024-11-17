@@ -1,5 +1,7 @@
 from pyecharts import options as opt
 from pyecharts.charts import Tree
+import struct
+from VMachine.Instruction import INSTRUCTION
 # 可视化语法树
 # @Param ast: 语法树
 def AST_Visual(ast: dict):
@@ -171,3 +173,23 @@ def is_number(s):
     except (TypeError, ValueError):
         pass
     return False
+def is_integer(s):
+    return s %1 == 0
+
+def get_parameter(num):
+    if is_integer(num):
+        return num.to_bytes(4, byteorder='little' , signed=True)
+    else:
+        return struct.pack('<f', num)
+
+def has_parameter(code: INSTRUCTION):
+    return code in [INSTRUCTION.IMM,
+                    INSTRUCTION.IMMF,
+                    INSTRUCTION.PUSHIMM,
+                    INSTRUCTION.JMP,
+                    INSTRUCTION.JZ,
+                    INSTRUCTION.JNZ,
+                    INSTRUCTION.LEA,
+                    INSTRUCTION.CALL,
+                    INSTRUCTION.RET,
+                    INSTRUCTION.ENT]
