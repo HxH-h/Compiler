@@ -55,9 +55,38 @@ class Machine:
     def jmp(self):
         self._pc = self._code[self._pc]
 
-    # 打印寄存器的值
-    def print(self):
-        print(self._ax)
+    # 函数调用
+    def call(self):
+        self._sp -= 1
+        # 下一个pc指向call函数对应的地址
+        # 下下个才是函数结束后的指令
+        self._stack[self._sp] = self._pc + 1
+        self._pc = self._code[self._pc]
+
+    # 函数调用开辟栈空间
+    def ent(self):
+        # 开辟形参个数 个 栈空间 还有一个存 old bp
+        self._sp -=  (self._code[self._pc] + 1)
+        # 多出的一个存储old bp
+        self._stack[self._sp] = self._bp
+        self._bp = self._sp
+
+    # 函数返回
+    # 需要传入函数的参数个数 释放栈空间
+    def ret(self):
+        # 释放 局部变量 ,函数参数 ,old bp空间
+        self._sp = self._bp + self._code[self._pc] + 1
+        # pc指针返回
+        self._pc = self._stack[self._bp - 1]
+        # 恢复bp
+        self._bp = self._stack[self._bp]
+
+    # 基址指针相对位移 入栈
+    def lea(self):
+        self._sp -= 1
+        self._stack[self._sp] = self._bp + self._code[self._pc]
+
+
 
     # 运算符
     def operator(self, op):
@@ -108,8 +137,18 @@ class Machine:
                 self.jz()
             case INSTRUCTION.JNZ:
                 self.jnz()
-            case INSTRUCTION.PRINT:
-                self.print()
+            case INSTRUCTION.CALL:
+                self.call()
+            case INSTRUCTION.RET:
+                self.ret()
+            case INSTRUCTION.ENT:
+                self.ent()
+                self._pc += 1
+            case INSTRUCTION.POP:
+                self.pop()
+            case INSTRUCTION.LEA:
+                self.lea()
+                self._pc += 1
             case o if INSTRUCTION.ADD <= o <= INSTRUCTION.GREATER:
                 self.operator(op)
 
@@ -132,9 +171,6 @@ class Machine:
             for i in range(size):
                 self._code.append(int.from_bytes(f.read(1) , byteorder='little' , signed=True))
 
-    # TODO 测试完删除
-    def getCode(self):
-        return self._code
 
 
 

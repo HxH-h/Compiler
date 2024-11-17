@@ -8,13 +8,18 @@ if __name__ == '__main__':
     parser = Parser()
     tokens = [
         Token(TYPE.FUNC, "func"),
-        Token(TYPE.IDENTIFIER, "main"),
+        Token(TYPE.IDENTIFIER, "sum"),
         Token(TYPE.OPENPT , "("),
         Token(TYPE.IDENTIFIER , "a"),
         Token(TYPE.COMMA , ","),
         Token(TYPE.IDENTIFIER , "b"),
         Token(TYPE.CLOSEPT , ")"),
         Token(TYPE.OPENBRACE , "{"),
+        Token(TYPE.RETURN , "return"),
+        Token(TYPE.IDENTIFIER, "a"),
+        Token(TYPE.PLUS, "+"),
+        Token(TYPE.IDENTIFIER, "b"),
+        Token(TYPE.CLOSEBRACE , "}"),
 
         Token(TYPE.LET , "let"),
         Token(TYPE.IDENTIFIER, "a"),
@@ -27,16 +32,14 @@ if __name__ == '__main__':
         Token(TYPE.IDENTIFIER, "sum"),
         Token(TYPE.OPENPT, "("),
         Token(TYPE.IDENTIFIER, "a"),
-        Token(TYPE.PLUS, "+"),
-        Token(TYPE.IDENTIFIER, "b"),
         Token(TYPE.COMMA , ","),
-        Token(TYPE.IDENTIFIER , 'c'),
+        Token(TYPE.NUMBER, "2"),
         Token(TYPE.CLOSEPT, ")"),
 
 
         Token(TYPE.IF , "if"),
         Token(TYPE.OPENPT , "("),
-        Token(TYPE.NUMBER, "2"),
+        Token(TYPE.NUMBER, "3"),
         Token(TYPE.LESS, "<"),
         Token(TYPE.NUMBER, "3"),
         Token(TYPE.CLOSEPT , ")"),
@@ -68,9 +71,12 @@ if __name__ == '__main__':
         Token(TYPE.LET , "let"),
         Token(TYPE.IDENTIFIER, "a"),
         Token(TYPE.ASSIGN, "="),
-        Token(TYPE.NUMBER, '5'),
+        Token(TYPE.NUMBER, '42'),
         Token(TYPE.CLOSEBRACE , "}"),
-        Token(TYPE.CLOSEBRACE , "}"),
+        Token(TYPE.LET , "let"),
+        Token(TYPE.IDENTIFIER, "c"),
+        Token(TYPE.ASSIGN, "="),
+        Token(TYPE.NUMBER, '101'),
         Token(TYPE.EOF, None)
     ]
 
@@ -81,10 +87,10 @@ if __name__ == '__main__':
     AST_Visual(json)
 
     g = Generator()
-    #g.generate(json)
-    #print(g.code)
-    #m = Machine('output.bin')
-    #print(m.run())
+    g.generate(json)
+
+    m = Machine('output.bin')
+    print(m.run())
 
 
 

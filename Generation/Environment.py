@@ -22,6 +22,10 @@ class Environment:
         self.symbolTable[name] = -self.symbolNum
         return -self.symbolNum
 
+    # 添加函数
+    def addFunction(self , name: str, address: int):
+        self.symbolTable[name] = address
+
     # 递归的查找变量是否存在
     def find(self , name: str) -> bool:
         if self.has(name):

@@ -25,8 +25,14 @@ class INSTRUCTION(IntEnum):
     JMP = 0x12,
     JZ = 0x13,
     JNZ = 0x14,
+    # 函数调用
+    CALL = 0x15,
+    ENT = 0x16,
+    RET = 0x17,
+    LEA = 0x18,
+    POP = 0x19
     # 内置函数
-    PRINT = 0x15,
+
     def getCode(operater: str) -> int:
         match operater:
             case '+':

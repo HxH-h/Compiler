@@ -47,6 +47,13 @@ def get_node(node: dict , tree: list):
         get_call_node(node , tree)
         return
 
+    # 函数返回值
+    if node['type'] == "ReturnStatement":
+        n = {"name": node["type"], "children": []}
+        get_node(node['ret'] , n['children'])
+        tree.append(n)
+        return
+
     # 递归出口
     if isEnd(node):
         tree.append({"name": node["value"]})

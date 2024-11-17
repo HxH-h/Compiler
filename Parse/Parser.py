@@ -69,6 +69,8 @@ class Parser:
                 return self.parse_loop()
             case TYPE.FUNC:
                 return self.parse_function()
+            case TYPE.RETURN:
+                return self.parse_return()
             case _:
                 return self.parse_expression()
 
@@ -128,6 +130,15 @@ class Parser:
 
         self.expect(TYPE.CLOSEPT,"Expect Close Parenthesis")
         return args
+
+    # 处理返回表达式
+    # @return dict: 返回一条返回语句的AST
+    def parse_return(self) -> dict:
+        self.next()
+        return {
+            "type": "ReturnStatement",
+            "ret": self.parse_expression()
+        }
 
 
     # 获取函数声明形参
