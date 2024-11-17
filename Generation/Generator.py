@@ -13,7 +13,7 @@ class Generator:
 
         for stmt in node['body']:
             self.generate(stmt , env)
-
+        self.code.append(INSTRUCTION.EXIT)
         # 生成指令文件
         self.generate_code()
         # 生成二进制文件
@@ -69,7 +69,10 @@ class Generator:
         self.generate(node['right'] , env , inFunc)
         # 获取变量地址
         add = env.findSymbol(node['left']['value'])
-        self.code.append(INSTRUCTION.PUSHIMM)
+        if inFunc:
+            self.code.append(INSTRUCTION.LEA)
+        else:
+            self.code.append(INSTRUCTION.PUSHIMM)
         self.code.append(add)
         self.code.append(INSTRUCTION.SLV)
 
@@ -164,19 +167,16 @@ class Generator:
 
         # 解析函数体
         for stmt in node['body']['body']:
-            # 判断返回语句
-            if stmt['type'] == 'ReturnStatement':
-                self.generate(stmt['ret'] , fun_env , True)
-                self.code.append(INSTRUCTION.RET)
-                self.code.append(symbolNum - 1)
-                break
             self.generate(stmt , fun_env , True)
-
 
         self.code[start_index] = len(self.code)
 
     # 处理函数调用
     def generate_CallExpression(self , node: dict , env: Environment , inFunc: bool):
+        # 判断函数是否声明
+        if not env.find(node['value']):
+            raise Exception('Function ' + node['value'] + ' not known')
+
         # 开辟栈空间
         self.code.append(INSTRUCTION.ENT)
         self.code.append(len(node['args']))
@@ -190,7 +190,19 @@ class Generator:
         self.code.append(INSTRUCTION.CALL)
         self.code.append(env.findSymbol(node['value']))
 
+    # 处理函数返回
+    def generate_ReturnStatement(self , node: dict , env: Environment):
+        self.generate(node['ret'] , env , True)
+        self.code.append(INSTRUCTION.RET)
+        # 释放形参空间
+        self.code.append(len(env.symbolTable) - env.symbolNum + 1)
 
+    # 处理print函数
+    def generate_PrintStatement(self , node: dict , env: Environment , inFunc: bool):
+        # 解析每个函数并打印
+        for arg in node['args']:
+            self.generate(arg , env , inFunc)
+            self.code.append(INSTRUCTION.PRINT)
 
     def generate(self , node: dict , env: Environment = None , inFunc: bool = False):
         match node['type']:
@@ -212,6 +224,10 @@ class Generator:
                 self.generate_FunctionDeclaration(node , env)
             case 'CallExpression':
                 self.generate_CallExpression(node , env , inFunc)
+            case 'ReturnStatement':
+                self.generate_ReturnStatement(node , env)
+            case 'PrintStatement':
+                self.generate_PrintStatement(node , env , inFunc)
             case 'NumericLiteral':
                 self.generate_NumericLiteral(node)
             case 'Identifier':
@@ -243,7 +259,6 @@ class Generator:
                     f.write(get_parameter(i + 1) + '\n')
                     i += 1
                 i += 1
-
 
 
 

@@ -32,6 +32,8 @@ class INSTRUCTION(IntEnum):
     LEA = 0x18,
     POP = 0x19
     # 内置函数
+    PRINT = 0x20
+    EXIT = 0x21
 
     def getCode(operater: str) -> int:
         match operater:

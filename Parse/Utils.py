@@ -43,7 +43,7 @@ def get_node(node: dict , tree: list):
         return
 
     # 判断函数调用
-    if node['type'] == "CallExpression":
+    if node['type'] == "CallExpression" or node['type'] == "PrintStatement":
         get_call_node(node , tree)
         return
 

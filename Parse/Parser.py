@@ -1,10 +1,9 @@
 from Lex.Lexer import Lexer , Token , TYPE
-import json
 
 # token 转 AST
 class Parser:
-    def __init__(self):
-        self.lexer = Lexer()
+    def __init__(self , filepath: str):
+        self.lexer = Lexer(filepath)
         self.tokens = self.lexer.tokenize()
         self.currentToken = 0
 
@@ -353,6 +352,9 @@ class Parser:
                 ret["type"] = "Identifier"
                 if self.at().type == TYPE.OPENPT:
                     ret['type'] = "CallExpression"
+                    # 查看是否为内置函数
+                    if token.value == "print":
+                        ret['type'] = "PrintStatement"
                     ret['args'] = self.parse_call()
             case TYPE.OPENPT:
                 # 括号内 仍然是 表达式
@@ -362,8 +364,6 @@ class Parser:
             case _:
                 raise SyntaxError("Unexpected token: " + token.value)
         return ret
-
-
 
 
 

@@ -86,6 +86,15 @@ class Machine:
         self._sp -= 1
         self._stack[self._sp] = self._bp + self._code[self._pc]
 
+    # print
+    def print(self):
+        print(self._ax)
+
+    # exit
+    def exit(self):
+        print("process exit")
+        exit()
+
 
 
     # 运算符
@@ -149,20 +158,22 @@ class Machine:
             case INSTRUCTION.LEA:
                 self.lea()
                 self._pc += 1
+            case INSTRUCTION.PRINT:
+                self.print()
+            case INSTRUCTION.EXIT:
+                self.exit()
             case o if INSTRUCTION.ADD <= o <= INSTRUCTION.GREATER:
                 self.operator(op)
 
 
     # 运行程序
-    # AX寄存器为返回值
     def run(self):
-        end = len(self._code)
-        while self._pc < end:
+        while True:
             op = self._code[self._pc]
             # pc总是指向下一条指令
             self._pc += 1
             self.dispatch(op)
-        return self._ax
+
 
     # 读取二进制文件
     def read_bin(self , path):
@@ -170,6 +181,8 @@ class Machine:
             size = os.path.getsize(path)
             for i in range(size):
                 self._code.append(int.from_bytes(f.read(1) , byteorder='little' , signed=True))
+
+
 
 
 
