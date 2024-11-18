@@ -59,27 +59,29 @@ class Machine:
 
     # 函数调用
     def call(self):
-        self._sp -= 1
         # 下一个pc指向call函数对应的地址
         # 下下个才是函数结束后的指令
-        self._stack[self._sp] = self._pc + 1
+        self._stack[self._bp + 1] = self._pc + 1
         self._pc = self._code[self._pc]
 
     # 函数调用开辟栈空间
     def ent(self):
-        # 开辟形参个数 个 栈空间 还有一个存 old bp
-        self._sp -=  (self._code[self._pc] + 1)
-        # 多出的一个存储old bp
+        # 开辟 old bp和 old pc
+        self._sp -= 2
         self._stack[self._sp] = self._bp
         self._bp = self._sp
+        # 开辟 形参
+        self._sp -=  self._code[self._pc]
+
+
 
     # 函数返回
     # 需要传入函数的参数个数 释放栈空间
     def ret(self):
-        # 释放 局部变量 ,函数参数 ,old bp空间
-        self._sp = self._bp + self._code[self._pc] + 1
+        # 释放 空间
+        self._sp = self._bp + 2
         # pc指针返回
-        self._pc = self._stack[self._bp - 1]
+        self._pc = self._stack[self._bp + 1]
         # 恢复bp
         self._bp = self._stack[self._bp]
 
@@ -179,7 +181,7 @@ class Machine:
 
     # 读取二进制文件
     def read_bin(self , path):
-
+        # TODO 转换后的浮点精度问题
         with open(path , 'rb') as f:
             size = os.path.getsize(path)
             i = 0

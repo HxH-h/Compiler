@@ -191,5 +191,4 @@ def has_parameter(code: INSTRUCTION):
                     INSTRUCTION.JNZ,
                     INSTRUCTION.LEA,
                     INSTRUCTION.CALL,
-                    INSTRUCTION.RET,
                     INSTRUCTION.ENT]

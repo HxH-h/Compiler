@@ -162,12 +162,9 @@ class Generator:
 
         # 设置函数内符号表 函数内局部变量基于bp指针 envrionment只起到符号表作用
         fun_env = Environment()
-        symbolNum = 1
-        # 参数在 bp 指针 上 相对地址为负
+        # 参数在 bp 指针 下 相对地址为负
         for arg in node['args']:
-            fun_env.symbolTable[arg] = symbolNum
-            symbolNum += 1
-        fun_env.symbolNum = 1
+            fun_env.addSymbol(arg)
 
         # 解析函数体
         for stmt in node['body']['body']:
@@ -188,7 +185,7 @@ class Generator:
         for i in range(len(node['args'])):
             self.generate(node['args'][i] , env , inFunc)
             self.code.append(INSTRUCTION.LEA)
-            self.code.append(i + 1)
+            self.code.append(-(i + 1))
             self.code.append(INSTRUCTION.SLV)
         # 调用函数
         self.code.append(INSTRUCTION.CALL)
@@ -198,8 +195,6 @@ class Generator:
     def generate_ReturnStatement(self , node: dict , env: Environment):
         self.generate(node['ret'] , env , True)
         self.code.append(INSTRUCTION.RET)
-        # 释放形参空间
-        self.code.append(len(env.symbolTable) - env.symbolNum + 1)
 
     # 处理print函数
     def generate_PrintStatement(self , node: dict , env: Environment , inFunc: bool):
