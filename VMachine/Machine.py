@@ -1,11 +1,11 @@
 import struct
-from Parse.Utils import has_parameter
+from Parse.Utils import has_parameter , decode
 from VMachine.Instruction import INSTRUCTION
 import os
 class Machine:
-    def __init__(self , path):
+    def __init__(self , path , size):
         # 栈
-        self._stack = [0] * 100
+        self._stack = [0] * size
         # 栈指针
         self._sp = len(self._stack)
         # 栈基址
@@ -34,6 +34,8 @@ class Machine:
 
     # 寄存器的值 入栈
     def push(self):
+        if self._sp - 1 < 0:
+            self.error("stack overflow")
         self._sp -= 1
         self._stack[self._sp] = self._ax
 
@@ -43,6 +45,8 @@ class Machine:
         self._sp += 1
     #  立即数 入栈
     def pushimm(self, value):
+        if self._sp - 1 < 0:
+            self.error("stack overflow")
         self._sp -= 1
         self._stack[self._sp] = value
 
@@ -66,20 +70,19 @@ class Machine:
 
     # 函数调用开辟栈空间
     def ent(self):
+        if self._sp - 2 < 0:
+            self.error("stack overflow")
         # 开辟 old bp和 old pc
         self._sp -= 2
         self._stack[self._sp] = self._bp
         self._bp = self._sp
-        # 开辟 形参
-        self._sp -=  self._code[self._pc]
-
-
 
     # 函数返回
     # 需要传入函数的参数个数 释放栈空间
     def ret(self):
-        # 释放 空间
+        # 释放空间
         self._sp = self._bp + 2
+        self._sp += self._stack[self._sp] + 1
         # pc指针返回
         self._pc = self._stack[self._bp + 1]
         # 恢复bp
@@ -87,19 +90,34 @@ class Machine:
 
     # 基址指针相对位移 入栈
     def lea(self):
+        if self._sp - 1 < 0:
+            self.error("stack overflow")
         self._sp -= 1
         self._stack[self._sp] = self._bp + self._code[self._pc]
+
+    # 划分栈空间
+    def malloc(self):
+        if self._sp - self._ax < 0:
+            self.error("can not allocation " + str(self._ax) + " size")
+
+        self._sp -= self._ax
 
     # print
     def print(self):
         print(self._ax)
 
+    # input
+    def input(self , value: str):
+        try:
+            self._ax = eval(input(value))
+        except Exception:
+            print("input error")
+            self.exit()
+
     # exit
     def exit(self):
         print("process exit")
         exit()
-
-
 
     # 运算符
     def operator(self, op):
@@ -128,6 +146,20 @@ class Machine:
                 self._ax = self._stack[self._sp] < self._ax
             case INSTRUCTION.GREATER:
                 self._ax = self._stack[self._sp] > self._ax
+            case INSTRUCTION.AND:
+                self._ax = self._stack[self._sp] and self._ax
+            case INSTRUCTION.OR:
+                self._ax = self._stack[self._sp] or self._ax
+            case INSTRUCTION.LAND:
+                self._ax = self._stack[self._sp] & self._ax
+            case INSTRUCTION.LOR:
+                self._ax = self._stack[self._sp] | self._ax
+            case INSTRUCTION.XOR:
+                self._ax = self._stack[self._sp] ^ self._ax
+            case INSTRUCTION.SL:
+                self._ax = self._stack[self._sp] << self._ax
+            case INSTRUCTION.SR:
+                self._ax = self._stack[self._sp] >> self._ax
         self._sp += 1
 
     def dispatch(self , op):
@@ -156,7 +188,6 @@ class Machine:
                 self.ret()
             case INSTRUCTION.ENT:
                 self.ent()
-                self._pc += 1
             case INSTRUCTION.POP:
                 self.pop()
             case INSTRUCTION.LEA:
@@ -164,24 +195,35 @@ class Machine:
                 self._pc += 1
             case INSTRUCTION.PRINT:
                 self.print()
+            case INSTRUCTION.INPUT:
+                l = []
+                while self._code[self._pc] != 0:
+                    l.append(self._code[self._pc])
+                    self._pc += 1
+                self.input(decode(l))
+                self._pc += 1
+            case INSTRUCTION.MALLOC:
+                self.malloc()
             case INSTRUCTION.EXIT:
                 self.exit()
-            case o if INSTRUCTION.ADD <= o <= INSTRUCTION.GREATER:
+            case o if INSTRUCTION.ADD <= o <= INSTRUCTION.SR:
                 self.operator(op)
 
 
     # 运行程序
     def run(self):
-        while True:
-            op = self._code[self._pc]
-            # pc总是指向下一条指令
-            self._pc += 1
-            self.dispatch(op)
-
+        try:
+            while True:
+                op = self._code[self._pc]
+                # pc总是指向下一条指令
+                self._pc += 1
+                self.dispatch(op)
+        except Exception as e:
+            self.error(e)
 
     # 读取二进制文件
     def read_bin(self , path):
-        # TODO 转换后的浮点精度问题
+
         with open(path , 'rb') as f:
             size = os.path.getsize(path)
             i = 0
@@ -196,10 +238,18 @@ class Machine:
                         num = int.from_bytes(f.read(4) , byteorder='little' , signed=True)
                         self._code.append(num)
                     i += 4
+                elif code == INSTRUCTION.INPUT:
+                    while True:
+                        num = int.from_bytes(f.read(4) , byteorder='little' , signed=True)
+                        self._code.append(num)
+                        i += 4
+                        if num == 0:
+                            break
                 i += 1
 
-
-
+    def error(self , info):
+        print("RuntimeError: " + info)
+        exit(0)
 
 
 

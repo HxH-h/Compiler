@@ -1,23 +1,37 @@
-from VMachine.Instruction import INSTRUCTION
-from Parse.Utils import is_number , is_integer , has_parameter , get_parameter
+from Parse.Utils import *
 from Generation.Environment import Environment
+
 # AST转机器码
 class Generator:
-    def __init__(self):
+    def __init__(self , path , generateCode , generateBin):
         self.code = []
+        self.generateCode = generateCode
+        self.generateBin = generateBin
+        # 查看是否需要生成文件 并设置默认的文件名
+        if generateCode:
+            if generateCode is True:
+                self.generateCode = path + '.txt'
+        if generateBin:
+            if generateBin is True:
+                self.generateBin = path + '.bin'
 
-
+    # 解析语法树最外层
     def generate_program(self , node: dict):
         # program 为 最外层 作为根环境
         env = Environment()
 
+        # 遍历语法树
         for stmt in node['body']:
             self.generate(stmt , env)
         self.code.append(INSTRUCTION.EXIT)
-        # 生成指令文件
-        self.generate_code()
-        # 生成二进制文件
-        self.generate_bin()
+        if self.generateCode:
+            # 生成机器码
+            self.generate_code()
+        if self.generateBin:
+            # 生成二进制文件
+            self.generate_bin()
+
+    # 处理二元表达式
     def generate_BinaryExpression(self , node: dict , env: Environment , inFunc: bool):
         self.generate(node['left'] , env , inFunc)
         # 左部结果入栈
@@ -28,6 +42,14 @@ class Generator:
         opCode = INSTRUCTION.getCode(node['operator'])
         self.code.append(opCode)
 
+    # 处理一元表达式 - 和 ！
+    def generate_SingleExpression(self , node: dict , env: Environment , inFunc: bool):
+        self.code.append(INSTRUCTION.PUSHIMM)
+        self.code.append(0)
+        self.generate(node['right'] , env , inFunc)
+        opCode = INSTRUCTION.getCode(node['value'])
+        self.code.append(opCode)
+    # 处理数字
     def generate_NumericLiteral(self , node: dict):
         # 将文本转为数字
         if is_number(node['value']):
@@ -38,22 +60,22 @@ class Generator:
                 self.code.append(INSTRUCTION.IMMF)
             self.code.append(num)
         else:
-            raise Exception('Invalid number cannot convert to Number')
+            self.error('Invalid number cannot convert to Number')
 
     # 处理变量声明
     def generate_Declaration(self , node: dict , env: Environment , inFunc: bool):
-        # TODO 暂时只处理一个变量
+        # 只处理一个变量
         varible = node['child'][0]
         # 声明前 查找该变量是否存在 , 只在当前环境下查看 , 实现遮蔽的效果
         if env.has(varible['name']):
-            raise Exception('Variable already declared')
+            self.error('Variable already declared')
         add = env.addSymbol(varible['name'])
         # 生成虚拟机指令
         # 分配栈空间 ， 否则栈指针会回退
         self.code.append(INSTRUCTION.PUSH)
         # 查看是否分配初值
         if 'operator' in varible:
-            self.generate(varible['right'] , env)
+            self.generate(varible['right'] , env , inFunc)
         # 赋初值
         if inFunc:
             self.code.append(INSTRUCTION.LEA)
@@ -62,22 +84,82 @@ class Generator:
         self.code.append(add)
         self.code.append(INSTRUCTION.SLV)
 
+    # 处理数组定义
+    def generate_Array_Declaration(self , node: dict , env: Environment , inFunc: bool):
+        # 检查重名
+        if env.has(node['name']):
+             self.error('Variable already declared')
+        # 获取地址
+        add = env.addSymbol(node['name'])
+        # 分配空间
+        if node['size']['type'] != 'NumericLiteral':
+            self.error('Invalid array size')
+
+        self.generate(node['size'] , env , inFunc)
+        # 确保是整数
+        size = int(self.code[len(self.code) - 1])
+        self.code[len(self.code) - 1] = size
+        self.code.append(INSTRUCTION.MALLOC)
+        # 符号表要占位
+        for i in range(size - 1):
+            env.addSymbol(str(i) + node['name'])
+        # 查看是否分配初值
+        if 'member' in node:
+            # 检查成员数量书否超过分配值
+            cnt = len(node['member'])
+            if size < cnt:
+                self.error('Too many initializers')
+            for i in range(cnt):
+                # 赋初值
+                self.generate(node['member'][i] , env , inFunc)
+                # 赋值
+                if inFunc:
+                    self.code.append(INSTRUCTION.LEA)
+                else:
+                    self.code.append(INSTRUCTION.PUSHIMM)
+                self.code.append(add)
+                add -= 1
+                self.code.append(INSTRUCTION.SLV)
+
+    # 处理数组引用
+    def generate_array(self , node: dict , env: Environment , inFunc: bool):
+        name = node['value']
+        if env.find(name):
+            add = env.findSymbol(name)
+            # 处理偏移
+            self.generate(node['offset'] , env , inFunc)
+            if inFunc:
+                self.code.append(INSTRUCTION.LEA)
+            else:
+                self.code.append(INSTRUCTION.PUSHIMM)
+            self.code.append(add)
+            self.code.append(INSTRUCTION.SUB)
+            self.code.append(INSTRUCTION.RLV)
+
     def generate_AssignExpression(self , node: dict , env: Environment , inFunc: bool):
         # 判断左值是否为变量
-        if node['left']['type'] != 'Identifier':
-            raise Exception('Invalid left value cannot assign value')
+        if node['left']['type'] != 'Identifier' and node['left']['type'] != 'ArrayMember':
+            self.error('Invalid left value cannot assign value')
         # 赋值的变量可能来自外部环境 ， 递归查找
         if not env.find(node['left']['value']):
-            raise Exception('Variable ' + node['left']['value'] +' not known')
-        # 执行右部表达式
-        self.generate(node['right'] , env , inFunc)
+            self.error('Variable ' + node['left']['value'] +' not known')
         # 获取变量地址
         add = env.findSymbol(node['left']['value'])
+
         if inFunc:
             self.code.append(INSTRUCTION.LEA)
         else:
             self.code.append(INSTRUCTION.PUSHIMM)
         self.code.append(add)
+        # 判断是否为数组
+        if node['left']['type'] == 'ArrayMember':
+            self.generate(node['left']['offset'] , env , inFunc)
+            self.code.append(INSTRUCTION.SUB)
+            self.code.append(INSTRUCTION.PUSH)
+
+        # 执行右部表达式
+        self.generate(node['right'] , env , inFunc)
+
         self.code.append(INSTRUCTION.SLV)
 
     def generate_IFStatement(self , node: dict , env: Environment , inFunc: bool):
@@ -146,12 +228,14 @@ class Generator:
                 self.code.append(INSTRUCTION.IMM)
                 self.code.append(add)
             self.code.append(INSTRUCTION.RLV)
+        else:
+            self.error('Variable ' + varible + ' not known')
 
     # 处理函数定义
     def generate_FunctionDeclaration(self , node: dict , env: Environment):
         # 检测重名
         if env.has(node['name']):
-            raise Exception('Function already declared')
+            self.error('Function ' + node['name'] + ' already defined')
 
         # 防止机器码顺序执行 无条件跳转过函数声明
         self.code.append(INSTRUCTION.JMP)
@@ -161,10 +245,13 @@ class Generator:
         env.addFunction(node['name'] , start_index + 1)
 
         # 设置函数内符号表 函数内局部变量基于bp指针 envrionment只起到符号表作用
-        fun_env = Environment()
-        # 参数在 bp 指针 下 相对地址为负
+        fun_env = Environment(env)
+        symbolNum = len(node['args']) + 2
+        # 参数在 bp 指针 上 相对地址为负
         for arg in node['args']:
-            fun_env.addSymbol(arg)
+            fun_env.symbolTable[arg] = symbolNum
+            symbolNum -= 1
+        fun_env.symbolNum = 0
 
         # 解析函数体
         for stmt in node['body']['body']:
@@ -176,17 +263,18 @@ class Generator:
     def generate_CallExpression(self , node: dict , env: Environment , inFunc: bool):
         # 判断函数是否声明
         if not env.find(node['value']):
-            raise Exception('Function ' + node['value'] + ' not known')
-
+            self.error('Function ' + node['value'] + ' not known')
+        # 逐个传参
+        num = len(node['args'])
+        for i in range(num):
+            self.generate(node['args'][i] , env , inFunc)
+            self.code.append(INSTRUCTION.PUSH)
+        # 存储参数个数
+        self.code.append(INSTRUCTION.PUSHIMM)
+        self.code.append(num)
         # 开辟栈空间
         self.code.append(INSTRUCTION.ENT)
-        self.code.append(len(node['args']))
-        # 逐个传参
-        for i in range(len(node['args'])):
-            self.generate(node['args'][i] , env , inFunc)
-            self.code.append(INSTRUCTION.LEA)
-            self.code.append(-(i + 1))
-            self.code.append(INSTRUCTION.SLV)
+
         # 调用函数
         self.code.append(INSTRUCTION.CALL)
         self.code.append(env.findSymbol(node['value']))
@@ -200,8 +288,21 @@ class Generator:
     def generate_PrintStatement(self , node: dict , env: Environment , inFunc: bool):
         # 解析每个函数并打印
         for arg in node['args']:
+            if arg['type'] == 'StringLiteral':
+                self.error('print function do not support string')
             self.generate(arg , env , inFunc)
             self.code.append(INSTRUCTION.PRINT)
+
+    # 处理input函数
+    def generate_InputStatement(self , node: dict):
+        self.code.append(INSTRUCTION.INPUT)
+        if len(node['args']) == 1:
+            arg = node['args'][0]['value']
+            self.code.extend(encode(arg))
+        self.code.append(0)
+
+
+
 
     def generate(self , node: dict , env: Environment = None , inFunc: bool = False):
         match node['type']:
@@ -209,8 +310,14 @@ class Generator:
                 self.generate_program(node)
             case 'BinaryExpression':
                 self.generate_BinaryExpression(node , env , inFunc)
+            case 'SingleExpression':
+                self.generate_SingleExpression(node , env , inFunc)
             case 'VariableDeclaration':
                 self.generate_Declaration(node , env , inFunc)
+            case 'ArrayDeclaration':
+                self.generate_Array_Declaration(node , env , inFunc)
+            case 'ArrayMember':
+                self.generate_array(node , env , inFunc)
             case 'AssignExpression':
                 self.generate_AssignExpression(node , env , inFunc)
             case 'IfStatement':
@@ -227,15 +334,19 @@ class Generator:
                 self.generate_ReturnStatement(node , env)
             case 'PrintStatement':
                 self.generate_PrintStatement(node , env , inFunc)
+            case 'InputStatement':
+                self.generate_InputStatement(node)
             case 'NumericLiteral':
                 self.generate_NumericLiteral(node)
             case 'Identifier':
                 self.generate_Identifier(node , env , inFunc)
+            case _:
+                self.error('NotSupported node type ' + node['type'] +' can not generate code')
 
 
     def generate_bin(self):
 
-        with open('output.bin' , 'wb') as f:
+        with open(self.generateBin , 'wb') as f:
             length = len(self.code)
             i = 0
             while i < length:
@@ -243,6 +354,13 @@ class Generator:
                 if has_parameter(self.code[i]):
                     f.write(get_parameter(self.code[i + 1]))
                     i += 1
+                elif self.code[i] == INSTRUCTION.INPUT:
+                    i += 1
+                    while self.code[i] != 0:
+                        f.write(self.code[i].to_bytes(4, 'little' , signed=True))
+                        i += 1
+                    f.write(self.code[i].to_bytes(4, 'little' , signed=True))
+
                 i += 1
 
     def generate_code(self):
@@ -252,16 +370,25 @@ class Generator:
         def get_parameter(index):
             return str(self.code[index])
 
-        with open('output.txt' , 'w') as f:
-            lengh = len(self.code)
+        with open(self.generateCode , encoding='utf-8' ,mode='w') as f:
+            length = len(self.code)
             i = 0
-            while i < lengh:
+            while i < length:
                 code = get_code_name(i)
                 f.write(code + '\n')
                 if has_parameter(self.code[i]):
                     f.write(get_parameter(i + 1) + '\n')
                     i += 1
+                if self.code[i] == INSTRUCTION.INPUT:
+                    i += 1
+                    l = []
+                    while self.code[i] != 0:
+                        l.append(self.code[i])
+                        i += 1
+                    f.write(decode(l) + '\n')
                 i += 1
 
-
+    def error(self , info):
+        print("Code Exception: " + info)
+        exit(0)
 

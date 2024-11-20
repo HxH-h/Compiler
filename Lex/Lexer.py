@@ -15,6 +15,12 @@ class TYPE(Enum):
     MOD = auto()
     EXDIV = auto()
 
+    SL = auto()
+    SR = auto()
+    LAND = auto()
+    LOR = auto()
+    NOT = auto()
+
     EQUAL = auto()
     NE = auto()
     LESS = auto()
@@ -26,9 +32,12 @@ class TYPE(Enum):
 
     OR = auto()
     AND = auto()
+    XOR = auto()
 
     OPENPT = auto()
     CLOSEPT = auto()
+    OPENMT = auto()
+    CLOSEMT = auto()
     OPENBRACE = auto()
     CLOSEBRACE = auto()
     COMMA = auto()
@@ -62,7 +71,7 @@ class Lexer:
         self.keyWords = ["let", "const","if", "else", "while","NULL","func","return"]
 
     def read_file(self, filepath) -> str:
-        with open(filepath, "r") as file:
+        with open(filepath,encoding="utf-8" ,  mode="r") as file:
             code = file.read()
         return code
 
@@ -204,35 +213,20 @@ class Lexer:
                 self.type = TYPE.PLUS
                 self.val.append(self.cur)
                 self.nextChar()
-                if  self.cur == '=':
-                    self.type = 136
-                    self.val.append(self.cur)
-                    self.nextChar()
+
             elif self.cur == '-':
                 self.type = TYPE.MINUS
                 self.val.append(self.cur)
                 self.nextChar()
-                if  self.cur == '=':
-                    self.type = 137
-                    self.val.append(self.cur)
-                    self.nextChar()
             elif self.cur == '*':
                 self.type = TYPE.MULTI
                 self.val.append(self.cur)
                 self.nextChar()
-                if self.cur == '=':
-                    self.type = 138
-                    self.val.append(self.cur)
-                    self.nextChar()
             elif self.cur == '/':
                 self.type = TYPE.DIVIDE
                 self.val.append(self.cur)
                 self.nextChar()
-                if self.cur == '=':
-                    self.type = 139
-                    self.val.append(self.cur)
-                    self.nextChar()
-                elif self.cur == '/':
+                if self.cur == '/':
                     self.type = TYPE.EXDIV
                     self.val.append(self.cur)
                     self.nextChar()
@@ -240,10 +234,6 @@ class Lexer:
                 self.type = TYPE.MOD
                 self.val.append(self.cur)
                 self.nextChar()
-                if self.cur == '=':
-                    self.type = 140
-                    self.val.append(self.cur)
-                    self.nextChar()
             elif self.cur == '=':
                 self.type = TYPE.ASSIGN
                 self.val.append(self.cur)
@@ -261,11 +251,11 @@ class Lexer:
                 self.val.append(self.cur)
                 self.nextChar()
             elif self.cur == '[':
-                self.type = 109
+                self.type = TYPE.OPENMT
                 self.val.append(self.cur)
                 self.nextChar()
             elif self.cur == ']':
-                self.type = 110
+                self.type = TYPE.CLOSEMT
                 self.val.append(self.cur)
                 self.nextChar()
             elif self.cur == '{':
@@ -285,7 +275,7 @@ class Lexer:
                     self.val.append(self.cur)
                     self.nextChar()
                 elif self.cur == '>':
-                    self.type = 119
+                    self.type = TYPE.SR
                     self.val.append(self.cur)
                     self.nextChar()
             elif self.cur == '<':
@@ -297,11 +287,11 @@ class Lexer:
                     self.val.append(self.cur)
                     self.nextChar()
                 elif self.cur == '<':
-                    self.type = 120
+                    self.type = TYPE.SL
                     self.val.append(self.cur)
                     self.nextChar()
             elif self.cur == '!':
-                self.type = 121
+                self.type = TYPE.NOT
                 self.val.append(self.cur)
                 self.nextChar()
                 if self.cur == '=':
@@ -309,7 +299,7 @@ class Lexer:
                     self.val.append(self.cur)
                     self.nextChar()
             elif self.cur == '&':
-                self.type = 123
+                self.type = TYPE.LAND
                 self.val.append(self.cur)
                 self.nextChar()
                 if self.cur == '&':
@@ -317,21 +307,13 @@ class Lexer:
                     self.val.append(self.cur)
                     self.nextChar()
             elif self.cur == '|':
-                self.type = 125
+                self.type = TYPE.LOR
                 self.val.append(self.cur)
                 self.nextChar()
                 if self.cur == '|':
                     self.type = TYPE.OR
                     self.val.append(self.cur)
                     self.nextChar()
-            elif self.cur == '\\':  # \
-                self.type = 127
-                self.val.append(self.cur)
-                self.nextChar()
-            elif self.cur == '\'':  # ‘
-                self.type = 128
-                self.val.append(self.cur)
-                self.nextChar()
             elif self.cur == '\"':  # ”
                 self.nextChar()
                 haveEnd = False
@@ -355,7 +337,7 @@ class Lexer:
                 self.val.append(self.cur)
                 self.nextChar()
             elif self.cur == '^':  # 按位异或
-                self.type = 146
+                self.type = TYPE.XOR
                 self.val.append(self.cur)
                 self.nextChar()
             elif self.cur == '#':

@@ -1,4 +1,4 @@
-from Lex.Lexer import Lexer , Token , TYPE
+from Lex.Lexer import *
 
 # token 转 AST
 class Parser:
@@ -29,7 +29,7 @@ class Parser:
             self.currentToken += 1
             return tk
         else:
-            raise SyntaxError(msg)
+            self.error(msg)
 
     # 判断Token流是否结束
     # @return bool: 结束返回True
@@ -81,6 +81,10 @@ class Parser:
             "child":[]
         }
         token = self.next()
+        # 判断是否定义数组
+        if self.at().type == TYPE.OPENMT:
+            return self.parse_array()
+
         child = {}
         child['isConstant'] = token.type == TYPE.CONST
         child['name'] = self.expect(TYPE.IDENTIFIER,"Expect Identifier").value
@@ -91,6 +95,29 @@ class Parser:
             child['right'] = self.parse_expression()
 
         ret["child"].append(child)
+        return ret
+
+    # 处理数组声明
+    # @return dict: 返回定义数组的AST
+    def parse_array(self) -> dict:
+        ret = {
+            "type": "ArrayDeclaration",
+        }
+        self.next()
+        ret['size'] = self.parse_expression()
+        self.expect(TYPE.CLOSEMT , "Expect ]")
+        # 获取数组名
+        ret['name'] = self.expect(TYPE.IDENTIFIER,"Expect Identifier").value
+        # 判断是否赋初值
+        if self.at().type == TYPE.ASSIGN:
+            ret['member'] = []
+            self.next()
+            self.expect(TYPE.OPENBRACE , "Expect Open Brace")
+            ret['member'].append(self.parse_expression())
+            while self.at().type == TYPE.COMMA:
+                self.next()
+                ret['member'].append(self.parse_expression())
+            self.expect(TYPE.CLOSEBRACE , "Expect Close Brace")
         return ret
 
     # 处理函数声明
@@ -106,7 +133,6 @@ class Parser:
         ret['args'] = self.parse_parameter()
         # 解析函数体
         ret['body'] = self.parse_block()
-        # TODO 解析return
 
         return ret
 
@@ -258,8 +284,48 @@ class Parser:
 
     # 处理 与 运算符
     def parse_and(self) -> dict:
-        left = self.parse_equal()
+        left = self.parse_xor()
         while self.at().type == TYPE.AND:
+            op = self.next()
+            right = self.parse_xor()
+            left = {
+                "type": "BinaryExpression",
+                "left": left,
+                "right": right,
+                "operator": op.value
+            }
+        return left
+
+    # 按位或
+    def parse_lor(self) -> dict:
+        left = self.parse_xor()
+        while self.at().type == TYPE.LOR:
+            op = self.next()
+            right = self.parse_xor()
+            left = {
+                "type": "BinaryExpression",
+                "left": left,
+                "right": right,
+                "operator": op.value
+            }
+        return left
+    # 按位异或
+    def parse_xor(self) -> dict:
+        left = self.parse_land()
+        while self.at().type == TYPE.XOR:
+            op = self.next()
+            right = self.parse_land()
+            left = {
+                "type": "BinaryExpression",
+                "left": left,
+                "right": right,
+                "operator": op.value
+            }
+        return left
+    # 按位与
+    def parse_land(self) -> dict:
+        left = self.parse_equal()
+        while self.at().type == TYPE.LAND:
             op = self.next()
             right = self.parse_equal()
             left = {
@@ -286,8 +352,22 @@ class Parser:
 
     # 处理比较运算符
     def parse_compare(self) -> dict:
-        left = self.parse_plus()
+        left = self.parse_shift()
         if self.at().type == TYPE.LE or self.at().type == TYPE.GE or self.at().type == TYPE.LESS or self.at().type == TYPE.GREATER:
+            op = self.next()
+            right = self.parse_shift()
+            left = {
+                "type": "BinaryExpression",
+                "left": left,
+                "right": right,
+                "operator": op.value
+            }
+        return left
+
+    # 处理左移右移表达式
+    def parse_shift(self) -> dict:
+        left = self.parse_plus()
+        while self.at().type == TYPE.SL or self.at().type == TYPE.SR:
             op = self.next()
             right = self.parse_plus()
             left = {
@@ -341,29 +421,43 @@ class Parser:
 
         match token.type:
             # 二元运算符正常会在对应函数中被处理 ， 这里只处理一元运算符
-            case TYPE.NUMBER | TYPE.MINUS:
+            case TYPE.MINUS | TYPE.NOT:
+                ret["type"] = "SingleExpression"
+                ret["right"] = self.parse_expression()
+            case TYPE.NUMBER:
                 ret["type"] = "NumericLiteral"
-                # 匹配负数
-                if token.type == TYPE.MINUS:
-                    ret["value"] += self.next().value
             case TYPE.STRING:
                 ret["type"] = "StringLiteral"
             case TYPE.IDENTIFIER:
                 ret["type"] = "Identifier"
+                # 检测函数调用
                 if self.at().type == TYPE.OPENPT:
                     ret['type'] = "CallExpression"
                     # 查看是否为内置函数
                     if token.value == "print":
                         ret['type'] = "PrintStatement"
+                    if token.value == "input":
+                        ret['type'] = "InputStatement"
                     ret['args'] = self.parse_call()
+                # 检测数组引用
+                elif self.at().type == TYPE.OPENMT:
+                    ret['type'] = "ArrayMember"
+                    self.expect(TYPE.OPENMT, "Expected [ ")
+                    ret['offset'] = self.parse_expression()
+                    self.expect(TYPE.CLOSEMT, "Expected ] ")
             case TYPE.OPENPT:
                 # 括号内 仍然是 表达式
                 ret = self.parse_expression()
                 self.expect(TYPE.CLOSEPT, "Expected ')' ")
                 return ret
             case _:
-                raise SyntaxError("Unexpected token: " + token.value)
+                self.error("Unexpected token: " + token.value)
         return ret
+
+
+    def error(self , info):
+        print("SyntaxError: " + info)
+        exit(0)
 
 
 

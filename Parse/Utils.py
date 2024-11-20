@@ -1,14 +1,20 @@
+import json
+
 from pyecharts import options as opt
 from pyecharts.charts import Tree
 import struct
 from VMachine.Instruction import INSTRUCTION
 # 可视化语法树
 # @Param ast: 语法树
-def AST_Visual(ast: dict):
+def AST_Visual(ast: dict , filepath: str , height: int , width: int):
+    if height is None:
+        height = 800
+    if width is None:
+        width = 1500
     # 根据AST 找出 节点 和 边
     tree = search(ast)
     # echarts 画图
-    draw_graph(tree)
+    draw_graph(tree , filepath , height , width)
 
 # 搜索节点
 # @Param node: 节点
@@ -30,6 +36,14 @@ def get_node(node: dict , tree: list):
             get_varible_node(child , n['children'])
         tree.append(n)
         return
+    # 判断数组声明
+    if node['type'] == "ArrayDeclaration":
+        get_array_node(node , tree)
+        return
+    # 判断数组引用
+    if node['type'] == 'ArrayMember':
+        get_array_member_node(node,tree)
+        return
     # 判断IF语句
     if node['type'] == "IfStatement":
         get_if_node(node , tree)
@@ -45,7 +59,7 @@ def get_node(node: dict , tree: list):
         return
 
     # 判断函数调用
-    if node['type'] == "CallExpression" or node['type'] == "PrintStatement":
+    if node['type'] == "CallExpression" or node['type'] == "PrintStatement" or node['type'] == "InputStatement":
         get_call_node(node , tree)
         return
 
@@ -54,6 +68,10 @@ def get_node(node: dict , tree: list):
         n = {"name": node["type"], "children": []}
         get_node(node['ret'] , n['children'])
         tree.append(n)
+        return
+    if node['type'] == "SingleExpression":
+        tree.append({"name": node["value"]})
+        get_node(node['right'] , tree)
         return
 
     # 递归出口
@@ -82,6 +100,24 @@ def get_varible_node(node: dict , tree: list):
     if 'operator' in node:
         tree.append({"name": node["operator"]})
         get_node(node['right'] , tree)
+
+def get_array_node(node: dict , tree: list):
+    n = {"name": node["type"] , "children": []}
+    n['children'].append({"name": 'let'})
+    n['children'].append({'name': node["name"]})
+    if 'member' in node:
+        n['children'].append({"name": '='})
+        for member in node['member']:
+            n['children'].append({"name": member['value']})
+    tree.append(n)
+
+def get_array_member_node(node: dict , tree: list):
+    tree.append({"name": node["value"]})
+    tree.append({"name": '['})
+    n = {'name': 'offset' , 'children':[]}
+    get_node(node['offset'] , n['children'])
+    tree.append(n)
+    tree.append({'name': ']'})
 
 def get_if_node(node: dict , tree: list):
     n = {"name": node["type"] , "children": []}
@@ -139,9 +175,9 @@ def get_block_node(node: dict , tree: list , name: str):
 def isEnd(node: dict):
     return node["type"] in ['NumericLiteral' , 'StringLiteral' , 'Identifier']
 
-def draw_graph(tree: dict):
+def draw_graph(tree: dict , filepath: str , height: int , width: int):
 
-    t = (Tree(init_opts=opt.InitOpts(width="1500px", height="800px"))
+    t = (Tree(init_opts=opt.InitOpts(width=str(width) + 'px', height= str(height) + 'px'))
          .add("", [tree],
           orient="TB",
           edge_fork_position = '10%',
@@ -154,9 +190,14 @@ def draw_graph(tree: dict):
           )
         )
          .set_global_opts(title_opts=opt.TitleOpts(title="抽象语法树"))
-         .render("./AST.html")
+         .render(filepath)
     )
 
+
+def get_AST(ast: dict , filepath: str):
+    with open('output.json', 'w', encoding='utf-8') as f:
+        # 序列化并写入
+        json.dump(ast, f, ensure_ascii=False, indent=4)
 
 # 判断是否为数字
 
@@ -191,4 +232,12 @@ def has_parameter(code: INSTRUCTION):
                     INSTRUCTION.JNZ,
                     INSTRUCTION.LEA,
                     INSTRUCTION.CALL,
-                    INSTRUCTION.ENT]
+                   ]
+
+def encode(string: str) -> list:
+    return [ord(c) for c in string]
+
+def decode(code: list) -> str:
+    return ''.join([chr(c) for c in code])
+
+
