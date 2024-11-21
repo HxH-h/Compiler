@@ -68,7 +68,7 @@ class Lexer:
         self.type = None  # 单词种别码
         self.errInfo = ""  # 错误信息
          # 关键字
-        self.keyWords = ["let", "const","if", "else", "while","NULL","func","return"]
+        self.keyWords = ["let", 'const' ,"if", "else", "while","NULL","func","return"]
 
     def read_file(self, filepath) -> str:
         with open(filepath,encoding="utf-8" ,  mode="r") as file:

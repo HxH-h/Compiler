@@ -1,3 +1,5 @@
+import sys
+
 from Lex.Lexer import *
 
 # token 转 AST
@@ -284,10 +286,10 @@ class Parser:
 
     # 处理 与 运算符
     def parse_and(self) -> dict:
-        left = self.parse_xor()
+        left = self.parse_lor()
         while self.at().type == TYPE.AND:
             op = self.next()
-            right = self.parse_xor()
+            right = self.parse_lor()
             left = {
                 "type": "BinaryExpression",
                 "left": left,
@@ -456,8 +458,8 @@ class Parser:
 
 
     def error(self , info):
-        print("SyntaxError: " + info)
-        exit(0)
+        print("SyntaxError: " + str(info))
+        sys.exit(0)
 
 
 

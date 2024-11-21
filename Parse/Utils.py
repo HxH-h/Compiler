@@ -195,7 +195,7 @@ def draw_graph(tree: dict , filepath: str , height: int , width: int):
 
 
 def get_AST(ast: dict , filepath: str):
-    with open('output.json', 'w', encoding='utf-8') as f:
+    with open(filepath, 'w', encoding='utf-8') as f:
         # 序列化并写入
         json.dump(ast, f, ensure_ascii=False, indent=4)
 

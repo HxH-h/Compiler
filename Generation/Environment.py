@@ -13,18 +13,24 @@ class Environment:
         return name in self.symbolTable
 
     # 获取 当前环境下 变量 栈地址
-    def getSymbol(self , name: str) -> int:
+    def getSymbol(self , name: str) -> dict:
         return self.symbolTable[name]
 
     # 添加变量 并获取分配的栈地址
-    def addSymbol(self , name: str) -> int:
+    def addSymbol(self , name: str , type: str = "var") -> int:
         self.symbolNum += 1
-        self.symbolTable[name] = -self.symbolNum
+        self.symbolTable[name] = {
+            "address": -self.symbolNum,
+            "type": type
+                                 }
         return -self.symbolNum
 
     # 添加函数
     def addFunction(self , name: str, address: int):
-        self.symbolTable[name] = address
+        self.symbolTable[name] = {
+            "address": address,
+            "type": "func"
+        }
 
     # 递归的查找变量是否存在
     def find(self , name: str) -> bool:
@@ -35,8 +41,8 @@ class Environment:
         else:
             return False
 
-    # 递归的获取变量的栈地址
-    def findSymbol(self , name: str) -> int:
+    # 递归的获取变量
+    def findSymbol(self , name: str) -> dict:
         # 调用前会先执行find 所以不需要判断不存在的情况
         if self.has(name):
             return self.getSymbol(name)

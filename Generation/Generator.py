@@ -1,3 +1,5 @@
+import sys
+
 from Parse.Utils import *
 from Generation.Environment import Environment
 
@@ -69,7 +71,16 @@ class Generator:
         # 声明前 查找该变量是否存在 , 只在当前环境下查看 , 实现遮蔽的效果
         if env.has(varible['name']):
             self.error('Variable already declared')
-        add = env.addSymbol(varible['name'])
+
+        # 查看是否为常量
+        if varible['isConstant']:
+            add = env.addSymbol(varible['name'] , 'const')
+            # 判断是否赋值
+            if not 'operator' in varible:
+                self.error('Constant must be initialized')
+        else:
+            add = env.addSymbol(varible['name'])
+
         # 生成虚拟机指令
         # 分配栈空间 ， 否则栈指针会回退
         self.code.append(INSTRUCTION.PUSH)
@@ -90,7 +101,7 @@ class Generator:
         if env.has(node['name']):
              self.error('Variable already declared')
         # 获取地址
-        add = env.addSymbol(node['name'])
+        add = env.addSymbol(node['name'] , 'array')
         # 分配空间
         if node['size']['type'] != 'NumericLiteral':
             self.error('Invalid array size')
@@ -102,7 +113,7 @@ class Generator:
         self.code.append(INSTRUCTION.MALLOC)
         # 符号表要占位
         for i in range(size - 1):
-            env.addSymbol(str(i) + node['name'])
+            env.addSymbol(str(i) + node['name'] , 'array')
         # 查看是否分配初值
         if 'member' in node:
             # 检查成员数量书否超过分配值
@@ -125,14 +136,17 @@ class Generator:
     def generate_array(self , node: dict , env: Environment , inFunc: bool):
         name = node['value']
         if env.find(name):
-            add = env.findSymbol(name)
+            sym = env.findSymbol(name)
+            # 判断是否为数组
+            if sym['type'] != 'array':
+                self.error('Variable ' + name + ' is not array')
             # 处理偏移
             self.generate(node['offset'] , env , inFunc)
             if inFunc:
                 self.code.append(INSTRUCTION.LEA)
             else:
                 self.code.append(INSTRUCTION.PUSHIMM)
-            self.code.append(add)
+            self.code.append(sym['address'])
             self.code.append(INSTRUCTION.SUB)
             self.code.append(INSTRUCTION.RLV)
 
@@ -143,14 +157,16 @@ class Generator:
         # 赋值的变量可能来自外部环境 ， 递归查找
         if not env.find(node['left']['value']):
             self.error('Variable ' + node['left']['value'] +' not known')
-        # 获取变量地址
-        add = env.findSymbol(node['left']['value'])
-
+        # 获取变量
+        sym = env.findSymbol(node['left']['value'])
+        # 判断是否为常量
+        if sym['type'] == 'const':
+            self.error('Cannot assign value to constant')
         if inFunc:
             self.code.append(INSTRUCTION.LEA)
         else:
             self.code.append(INSTRUCTION.PUSHIMM)
-        self.code.append(add)
+        self.code.append(sym['address'])
         # 判断是否为数组
         if node['left']['type'] == 'ArrayMember':
             self.generate(node['left']['offset'] , env , inFunc)
@@ -217,16 +233,16 @@ class Generator:
         varible = node['value']
         # 表达式右值变量 递归查找
         if env.find(varible):
-            # 获取变量地址
-            add = env.findSymbol(varible)
+            # 获取变量
+            sym= env.findSymbol(varible)
             # 生成虚拟机指令 , 将值载入寄存器
             if inFunc:
                 self.code.append(INSTRUCTION.LEA)
-                self.code.append(add)
+                self.code.append(sym['address'])
                 self.code.append(INSTRUCTION.POP)
             else:
                 self.code.append(INSTRUCTION.IMM)
-                self.code.append(add)
+                self.code.append(sym['address'])
             self.code.append(INSTRUCTION.RLV)
         else:
             self.error('Variable ' + varible + ' not known')
@@ -249,7 +265,10 @@ class Generator:
         symbolNum = len(node['args']) + 2
         # 参数在 bp 指针 上 相对地址为负
         for arg in node['args']:
-            fun_env.symbolTable[arg] = symbolNum
+            fun_env.symbolTable[arg] = {
+                'address': symbolNum,
+                'type': 'var'
+            }
             symbolNum -= 1
         fun_env.symbolNum = 0
 
@@ -277,7 +296,11 @@ class Generator:
 
         # 调用函数
         self.code.append(INSTRUCTION.CALL)
-        self.code.append(env.findSymbol(node['value']))
+        sym = env.findSymbol(node['value'])
+        # 判断是否为函数类型
+        if sym['type'] != 'func':
+            self.error(node['value'] + ' not a function')
+        self.code.append(sym['address'])
 
     # 处理函数返回
     def generate_ReturnStatement(self , node: dict , env: Environment):
@@ -389,6 +412,5 @@ class Generator:
                 i += 1
 
     def error(self , info):
-        print("Code Exception: " + info)
-        exit(0)
-
+        print("Code Exception: " + str(info))
+        sys.exit(0)

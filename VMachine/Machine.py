@@ -1,4 +1,6 @@
 import struct
+import sys
+
 from Parse.Utils import has_parameter , decode
 from VMachine.Instruction import INSTRUCTION
 import os
@@ -117,7 +119,7 @@ class Machine:
     # exit
     def exit(self):
         print("process exit")
-        exit()
+        sys.exit()
 
     # 运算符
     def operator(self, op):
@@ -248,8 +250,8 @@ class Machine:
                 i += 1
 
     def error(self , info):
-        print("RuntimeError: " + info)
-        exit(0)
+        print("RuntimeError: " + str(info))
+        sys.exit(0)
 
 
 
