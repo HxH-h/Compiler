@@ -49,7 +49,7 @@ class TYPE(Enum):
     WHILE = auto()
     FUNC = auto()
     RETURN = auto()
-
+    NOTE = auto()
     EOF = auto()
 
 class Token:
@@ -314,24 +314,55 @@ class Lexer:
                     self.type = TYPE.OR
                     self.val.append(self.cur)
                     self.nextChar()
-            elif self.cur == '\"':  # ”
+
+            elif self.cur == '\"':  # "
                 self.nextChar()
                 haveEnd = False
                 flag = 0
-                for i in range(self.cp, self.code_len):
-                    if self.code_char_list[i] == '"':
+                escape_sequence = False  # 添加一个标志来跟踪是否遇到转义字符
+                i = self.cp
+
+                while i < self.code_len:
+                    if self.code_char_list[i] == '\\':
+                        escape_sequence = True  # 遇到转义字符
+                        self.nextChar()
+                        i += 1
+                        if self.cur == 'n':
+                            self.val.append('\n')
+                        elif self.cur == 't':
+                            self.val.append('\t')
+                        elif self.cur == 'r':
+                            self.val.append('\r')
+                        elif self.cur == 'b':
+                            self.val.append('\b')
+                        elif self.cur == 'f':
+                            self.val.append('\f')
+                        elif self.cur == '"':
+                            self.val.append('"')
+                        elif self.cur == '\\':
+                            self.val.append('\\')
+                        else:
+                            self.val.append(self.cur)  # 未知转义字符，保留原样
+                        escape_sequence = False
+                        self.nextChar()
+                        i += 1
+                    elif self.code_char_list[i] == '\"':
                         haveEnd = True
                         flag = i
                         break
+                    else:
+                        self.val.append(self.code_char_list[i])
+                        self.nextChar()
+                        i += 1
+
                 if haveEnd:
-                    for j in range(self.cp, flag):
-                        self.val.append(self.code_char_list[j])
                     self.cp = flag + 1
                     self.cur = self.code_char_list[self.cp]
                     self.type = TYPE.STRING
                 else:
                     self.type = -999
                     self.error(" string常量没有闭合的\" ")
+
             elif self.cur == ',':
                 self.type = TYPE.COMMA
                 self.val.append(self.cur)
@@ -344,7 +375,7 @@ class Lexer:
                 self.nextChar()
                 while self.cur != '\n':
                     self.nextChar()
-                self.type = 0
+                self.type = TYPE.NOTE
             else:
                 self.type = -999
                 self.error(f" 无效字符: {self.cur}")
@@ -365,7 +396,12 @@ class Lexer:
             value = ''.join(self.val)  # char列表 ===> String
             new_tf = Token(self.type,  value)  # 创建二元式对象
 
-            Tokens.append(new_tf)
+            if self.type == -999:
+                self.error(f"{value} 词法分析失败")
+            elif self.type == TYPE.NOTE:
+                pass
+            else:
+                Tokens.append(new_tf)
 
             if self.cp >= (self.code_len - 1):  # 最后一个元素 为自主添加的\n，代表结束
                 break

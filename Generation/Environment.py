@@ -26,10 +26,11 @@ class Environment:
         return -self.symbolNum
 
     # 添加函数
-    def addFunction(self , name: str, address: int):
+    def addFunction(self , name: str, address: int , num: int):
         self.symbolTable[name] = {
             "address": address,
-            "type": "func"
+            "type": "func",
+            "num": num
         }
 
     # 递归的查找变量是否存在

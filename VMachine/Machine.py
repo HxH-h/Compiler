@@ -106,7 +106,7 @@ class Machine:
 
     # print
     def print(self):
-        print(self._ax)
+        print(self._ax , end="")
 
     # input
     def input(self , value: str):
@@ -115,9 +115,13 @@ class Machine:
         except Exception:
             print("input error")
             self.exit()
+    # print 打印字符串
+    def prints(self , s: str):
+        print(s , end='')
 
     # exit
     def exit(self):
+        print()
         print("process exit")
         sys.exit()
 
@@ -204,6 +208,13 @@ class Machine:
                     self._pc += 1
                 self.input(decode(l))
                 self._pc += 1
+            case INSTRUCTION.PRINTS:
+                l = []
+                while self._code[self._pc] != 0:
+                    l.append(self._code[self._pc])
+                    self._pc += 1
+                self.prints(decode(l))
+                self._pc += 1
             case INSTRUCTION.MALLOC:
                 self.malloc()
             case INSTRUCTION.EXIT:
@@ -240,7 +251,7 @@ class Machine:
                         num = int.from_bytes(f.read(4) , byteorder='little' , signed=True)
                         self._code.append(num)
                     i += 4
-                elif code == INSTRUCTION.INPUT:
+                elif code == INSTRUCTION.INPUT or code == INSTRUCTION.PRINTS:
                     while True:
                         num = int.from_bytes(f.read(4) , byteorder='little' , signed=True)
                         self._code.append(num)

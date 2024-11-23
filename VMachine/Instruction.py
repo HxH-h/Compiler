@@ -36,7 +36,7 @@ class INSTRUCTION(IntEnum):
     GREATER = 0x1B,
     AND = 0x1C,
     OR = 0x1D,
-    # 逻辑运算
+    # 按位运算
     LAND = 0x1E,
     LOR = 0x1F,
     XOR = 0x20,
@@ -49,6 +49,7 @@ class INSTRUCTION(IntEnum):
     EXIT = 0x31
     INPUT = 0x32
     MALLOC = 0x33
+    PRINTS = 0x34
 
     def getCode(operater: str) -> int:
         match operater:

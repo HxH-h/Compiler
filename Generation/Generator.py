@@ -99,7 +99,7 @@ class Generator:
     def generate_Array_Declaration(self , node: dict , env: Environment , inFunc: bool):
         # 检查重名
         if env.has(node['name']):
-             self.error('Variable already declared')
+             self.error('Variable ' + node['name'] +'already declared')
         # 获取地址
         add = env.addSymbol(node['name'] , 'array')
         # 分配空间
@@ -235,6 +235,9 @@ class Generator:
         if env.find(varible):
             # 获取变量
             sym= env.findSymbol(varible)
+            # 判断是否为变量
+            if sym['type'] != 'var':
+                self.error(varible + ' is not variable')
             # 生成虚拟机指令 , 将值载入寄存器
             if inFunc:
                 self.code.append(INSTRUCTION.LEA)
@@ -258,7 +261,7 @@ class Generator:
         start_index = len(self.code)
         self.code.append(None)
         # 注册函数
-        env.addFunction(node['name'] , start_index + 1)
+        env.addFunction(node['name'] , start_index + 1 , len(node['args']))
 
         # 设置函数内符号表 函数内局部变量基于bp指针 envrionment只起到符号表作用
         fun_env = Environment(env)
@@ -283,8 +286,16 @@ class Generator:
         # 判断函数是否声明
         if not env.find(node['value']):
             self.error('Function ' + node['value'] + ' not known')
+        sym = env.findSymbol(node['value'])
+        # 判断是否为函数类型
+        if sym['type'] != 'func':
+            self.error(node['value'] + ' not a function')
         # 逐个传参
         num = len(node['args'])
+        # 判断参数个数
+        if num != sym['num']:
+            self.error('Function ' + node['value'] + ' need ' + str(sym['num']) + ' arguments')
+
         for i in range(num):
             self.generate(node['args'][i] , env , inFunc)
             self.code.append(INSTRUCTION.PUSH)
@@ -296,10 +307,7 @@ class Generator:
 
         # 调用函数
         self.code.append(INSTRUCTION.CALL)
-        sym = env.findSymbol(node['value'])
-        # 判断是否为函数类型
-        if sym['type'] != 'func':
-            self.error(node['value'] + ' not a function')
+
         self.code.append(sym['address'])
 
     # 处理函数返回
@@ -324,6 +332,14 @@ class Generator:
             self.code.extend(encode(arg))
         self.code.append(0)
 
+    # 处理prints函数
+    def generate_PrintsStatement(self , node: dict):
+        self.code.append(INSTRUCTION.PRINTS)
+
+        if len(node['args']) == 1:
+            arg = node['args'][0]['value']
+            self.code.extend(encode(arg))
+        self.code.append(0)
 
 
 
@@ -359,6 +375,8 @@ class Generator:
                 self.generate_PrintStatement(node , env , inFunc)
             case 'InputStatement':
                 self.generate_InputStatement(node)
+            case 'PrintsStatement':
+                self.generate_PrintsStatement(node)
             case 'NumericLiteral':
                 self.generate_NumericLiteral(node)
             case 'Identifier':
@@ -377,7 +395,7 @@ class Generator:
                 if has_parameter(self.code[i]):
                     f.write(get_parameter(self.code[i + 1]))
                     i += 1
-                elif self.code[i] == INSTRUCTION.INPUT:
+                elif self.code[i] == INSTRUCTION.INPUT or self.code[i] == INSTRUCTION.PRINTS:
                     i += 1
                     while self.code[i] != 0:
                         f.write(self.code[i].to_bytes(4, 'little' , signed=True))
@@ -402,7 +420,7 @@ class Generator:
                 if has_parameter(self.code[i]):
                     f.write(get_parameter(i + 1) + '\n')
                     i += 1
-                if self.code[i] == INSTRUCTION.INPUT:
+                if self.code[i] == INSTRUCTION.INPUT or self.code[i] == INSTRUCTION.PRINTS:
                     i += 1
                     l = []
                     while self.code[i] != 0:

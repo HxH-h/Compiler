@@ -440,6 +440,8 @@ class Parser:
                         ret['type'] = "PrintStatement"
                     if token.value == "input":
                         ret['type'] = "InputStatement"
+                    if token.value == "prints":
+                        ret['type'] = "PrintsStatement"
                     ret['args'] = self.parse_call()
                 # 检测数组引用
                 elif self.at().type == TYPE.OPENMT:
