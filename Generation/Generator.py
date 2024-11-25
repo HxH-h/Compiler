@@ -71,7 +71,6 @@ class Generator:
         # 声明前 查找该变量是否存在 , 只在当前环境下查看 , 实现遮蔽的效果
         if env.has(varible['name']):
             self.error('Variable already declared')
-
         # 查看是否为常量
         if varible['isConstant']:
             add = env.addSymbol(varible['name'] , 'const')
@@ -80,7 +79,6 @@ class Generator:
                 self.error('Constant must be initialized')
         else:
             add = env.addSymbol(varible['name'])
-
         # 生成虚拟机指令
         # 分配栈空间 ， 否则栈指针会回退
         self.code.append(INSTRUCTION.PUSH)
@@ -311,7 +309,9 @@ class Generator:
         self.code.append(sym['address'])
 
     # 处理函数返回
-    def generate_ReturnStatement(self , node: dict , env: Environment):
+    def generate_ReturnStatement(self , node: dict , env: Environment , inFunc: bool):
+        if not inFunc:
+            self.error('return statement not in function')
         self.generate(node['ret'] , env , True)
         self.code.append(INSTRUCTION.RET)
 
@@ -370,7 +370,7 @@ class Generator:
             case 'CallExpression':
                 self.generate_CallExpression(node , env , inFunc)
             case 'ReturnStatement':
-                self.generate_ReturnStatement(node , env)
+                self.generate_ReturnStatement(node , env , inFunc)
             case 'PrintStatement':
                 self.generate_PrintStatement(node , env , inFunc)
             case 'InputStatement':

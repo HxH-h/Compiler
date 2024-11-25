@@ -455,7 +455,7 @@ class Parser:
                 self.expect(TYPE.CLOSEPT, "Expected ')' ")
                 return ret
             case _:
-                self.error("Unexpected token: " + token.value)
+                self.error("Unexpected token: " + str(token.value))
         return ret
 
 
